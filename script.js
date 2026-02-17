@@ -1,3 +1,5 @@
+let currentRoom = null;
+let currentRoomRef = null;
 // 1. Firebase Config
 const firebaseConfig = {
     apiKey: "AIzaSyDKBP6jaGk8g5I8-9FcRi3KQCjkDRGeGzk",
@@ -204,78 +206,94 @@ function renderUI() {
 }
 
 // --- QUẢN LÝ PHÒNG (FIX LỖI VÀO PHÒNG) ---
-function createRoom() {
-
-    const roomCode = generateRoomCode();
-    const playerName = currentUser.name;
-
-    database.ref("rooms/" + roomCode).set({
-        maxPlayers: 10,
-        turn: "",
-        lastWord: "",
-        players: {
-            [playerName]: {
-                avatar: currentUser.avatar,
-                gold: currentUser.gold
-            }
-        }
-    });
-
-    roomData.code = roomCode;
-
-    showToast("Tạo phòng thành công!");
-
-    document.getElementById('display-room-code').innerText = roomCode;
-
-    showSection('lobby');   // 👈 QUAN TRỌNG
-    listenLobby();          // 👈 QUAN TRỌNG
-}
-
 
 function joinRoom() {
-    const inputs = document.querySelectorAll('.otp-input');
-    let inputCode = "";
-    inputs.forEach(input => inputCode += input.value.trim().toUpperCase());
+    const inputs = document.querySelectorAll(".otp-input");
+    let code = "";
 
-    if (inputCode.length < 6) {
-        return showToast("Vui lòng nhập đủ 6 ký tự mã phòng!");
+    inputs.forEach(i => code += i.value.toUpperCase());
+
+    if (code.length !== 6) {
+        showToast("Nhập đủ 6 ký tự mã phòng!");
+        return;
     }
 
-    const roomRef = database.ref("rooms/" + inputCode);
+    const roomRef = firebase.database().ref("rooms/" + code);
 
-    roomRef.once("value").then(snapshot => {
-        if (snapshot.exists()) {
+    roomRef.once("value").then(snap => {
 
-
-            // THÊM NGƯỜI CHƠI VÀO ROOM
-            roomRef.child("players/" + currentUser.name).set({
-                avatar: currentUser.avatar,
-                gold: currentUser.gold
-            });
-
-            roomData.code = inputCode;
-            showToast("Vào phòng thành công!");
-            document.getElementById('display-room-code').innerText = inputCode;
-            showSection('lobby');
-            listenLobby();
-
-        } else {
-            showToast("Mã phòng không tồn tại!");
+        if (!snap.exists()) {
+            showToast("Phòng không tồn tại!");
+            return;
         }
+
+        const room = snap.val();
+
+        if (!room.players) room.players = {};
+
+        if (Object.keys(room.players).length >= room.maxPlayers) {
+            showToast("Phòng đã đầy!");
+            return;
+        }
+
+        roomRef.child("players/" + currentUser.name).set({
+            name: currentUser.name,
+            avatar: currentUser.avatar || "",
+            gold: currentUser.gold || 0
+        });
+
+        roomRef.child("players/" + currentUser.name)
+            .onDisconnect()
+            .remove();
+
+        currentRoom = code;
+        currentRoomRef = roomRef;
+        roomData.code = code;
+        roomData.mode = room.mode;
+
+        listenLobby();
+        showSection("lobby");
+
+        document.getElementById("display-room-code").innerText = code;
     });
+
 }
 
-function updateLobbyUI() {
+function updateLobbyUI(players) {
+
     const list = document.getElementById('lobby-players');
-    list.innerHTML = `
-        <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:10px; display:flex; align-items:center; gap:15px; border: 1px solid rgba(255,255,255,0.1);">
-            <img src="${currentUser.avatar}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border: 2px solid #8a2be2;">
-            <div>
-                <p style="margin:0; font-weight:bold;">${currentUser.name}</p>
-                <small style="color:#00ffcc;">Chủ phòng (Sẵn sàng)</small>
+    if (!list) return;
+
+    list.innerHTML = "";
+
+    for (let uid in players) {
+        const player = players[uid];
+
+        list.innerHTML += `
+            <div style="background:rgba(255,255,255,0.05);
+                        padding:15px;
+                        border-radius:10px;
+                        display:flex;
+                        align-items:center;
+                        gap:15px;
+                        margin-bottom:10px;">
+
+                <img src="${player.avatar}"
+                     style="width:50px;
+                            height:50px;
+                            border-radius:50%;
+                            object-fit:cover;">
+
+                <div>
+                    <div style="font-weight:bold;">${player.name}</div>
+                    <div style="opacity:0.7;">Gold: ${player.gold}</div>
+                </div>
+
             </div>
-        </div>`;
+        `;
+    }
 }
+
 
 // --- PROFILE & THAY ẢNH ĐẠI DIỆN ---
 function openProfile() {
@@ -362,58 +380,25 @@ function triggerCountdown() {
     }, 1000);
 }
 function startGame() {
-    database.ref("rooms/" + roomData.code + "/players")
-        .once("value").then(snapshot => {
+    if (!currentRoomRef) return;
 
-            const data = snapshot.val();
-            if (!data) return showToast("Không có người chơi!");
+    currentRoomRef.once("value").then(snap => {
+        const room = snap.val();
+        if (!room) return;
 
-            const players = Object.keys(data);
+        if (room.host !== currentUser.name) {
+            return showToast("Chỉ chủ phòng mới được bắt đầu!");
+        }
 
-            const randomIndex = Math.floor(Math.random() * players.length);
-            const firstPlayer = players[randomIndex];
-
-            database.ref("rooms/" + roomData.code).update({
-                turn: firstPlayer,
-                lastWord: ""
-            });
-
-            showSection('game-play');
-
-            listenGameRealtime(); // ← BẮT BUỘC CÓ DÒNG NÀY
+        currentRoomRef.update({
+            started: true
         });
+    });
 }
-
 
 function saveAllData() {
     localStorage.setItem('natsumi_users', JSON.stringify(users));
     localStorage.setItem('natsumi_current', JSON.stringify(currentUser));
-}
-function listenLobby() {
-
-    database.ref("rooms/" + roomData.code + "/players")
-        .on("value", snapshot => {
-
-            const players = snapshot.val();
-            if (!players) return;
-
-            const list = document.getElementById("lobby-players");
-            list.innerHTML = "";
-
-            for (let name in players) {
-                list.innerHTML += `
-                <div style="background:rgba(255,255,255,0.05);
-                            padding:15px;border-radius:10px;
-                            display:flex;align-items:center;gap:15px;">
-                    <img src="${players[name].avatar}"
-                         style="width:50px;height:50px;border-radius:50%;">
-                    <div>
-                        <p style="margin:0;font-weight:bold;">${name}</p>
-                    </div>
-                </div>`;
-            }
-
-        });
 }
 
 function listenGameRealtime() {
@@ -574,45 +559,7 @@ function quickJoinRoom(code) {
             listenLobby();
         });
 }
-function listenRoomList() {
-    const roomListDiv = document.getElementById("room-list");
 
-    database.ref("rooms").on("value", snapshot => {
-        const roomCodeEl = document.getElementById("roomCode");
-
-        if (roomCodeEl) {
-            roomCodeEl.innerHTML = code;
-        }
-
-
-        if (!snapshot.exists()) {
-            roomListDiv.innerHTML = "<p>Chưa có phòng nào</p>";
-            return;
-        }
-
-        snapshot.forEach(child => {
-            const room = child.val();
-            const roomCode = child.key;
-
-            const div = document.createElement("div");
-            div.style.padding = "10px";
-            div.style.background = "#1f1f1f";
-            div.style.borderRadius = "8px";
-            div.style.cursor = "pointer";
-
-            div.innerHTML = `
-        <b>Phòng:</b> ${roomCode}<br>
-        Người chơi: ${Object.keys(room.players || {}).length}/${room.maxPlayers}
-      `;
-
-            div.onclick = () => {
-                joinRoomByCode(roomCode);
-            };
-
-            roomListDiv.appendChild(div);
-        });
-    });
-}
 function joinRoomByCode(roomCode) {
     const playerName = document.getElementById("user-display").innerText;
 
@@ -625,45 +572,6 @@ function joinRoomByCode(roomCode) {
 window.onload = function () {
     listenRoomList();
 };
-function listenRoomList() {
-
-    const roomListDiv = document.getElementById("room-list");
-
-    if (!roomListDiv) return; // CHỐNG LỖI NULL
-
-    database.ref("rooms").on("value", snapshot => {
-
-        roomListDiv.innerHTML = "";
-
-        if (!snapshot.exists()) {
-            roomListDiv.innerHTML = "<p>Chưa có phòng nào</p>";
-            return;
-        }
-
-        snapshot.forEach(child => {
-            const room = child.val();
-            const roomCode = child.key;
-
-            const div = document.createElement("div");
-            div.style.padding = "10px";
-            div.style.background = "#1f1f1f";
-            div.style.borderRadius = "8px";
-            div.style.cursor = "pointer";
-
-            div.innerHTML = `
-                <b>Phòng:</b> ${roomCode}<br>
-                Người chơi: ${Object.keys(room.players || {}).length}/${room.maxPlayers}
-            `;
-
-            div.onclick = () => {
-                joinRoomByCode(roomCode);
-            };
-
-            roomListDiv.appendChild(div);
-        });
-
-    });
-}
 function generateRoomCode() {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     let code = "";
@@ -684,4 +592,85 @@ function showNotify(text) {
     setTimeout(() => {
         box.style.display = "none";
     }, 2000);
+}
+function generateRoomCode() {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+function createRoom() {
+    const code = generateRoomCode();
+    const playerName = currentUser.name;
+    const playerCount = document.getElementById("player-count").value;
+    const mode = document.getElementById("game-mode").value;
+
+    const roomData = {
+        host: playerName,
+        mode: mode,
+        maxPlayers: parseInt(playerCount),
+        started: false,
+        players: {
+            [playerName]: {
+                name: playerName,
+                avatar: currentUser?.avatar || "",
+                gold: currentUser?.gold || 0
+            }
+        },
+        createdAt: Date.now()
+    };
+
+    firebase.database().ref("rooms/" + code).set(roomData);
+
+    currentRoom = code;
+    currentRoomRef = firebase.database().ref("rooms/" + code);
+
+    listenLobby();
+    showSection("lobby");
+
+    document.getElementById("display-room-code").innerText = code;
+}
+function listenLobby() {
+
+    // realtime danh sách player
+    currentRoomRef.child("players").on("value", snap => {
+
+        const players = snap.val();
+        const list = document.getElementById("lobby-players");
+
+
+        if (!list) return;
+
+        list.innerHTML = "";
+
+        if (!players) return;
+
+        Object.values(players).forEach(p => {
+
+            list.innerHTML += `
+                <div class="p-card">
+                    <img src="${p.avatar || 'https://i.imgur.com/6VBx3io.png'}">
+                    <div>${p.name}</div>
+                </div>
+            `;
+        });
+    });
+
+    // realtime trạng thái phòng
+    currentRoomRef.on("value", snap => {
+
+        const room = snap.val();
+        if (!room) return;
+
+        const startBtn = document.getElementById("start-btn");
+
+        if (room.host === currentUser.name) {
+            startBtn.style.display = "block";
+        } else {
+            startBtn.style.display = "none";
+        }
+
+        if (room.started) {
+            showSection("game-play");
+            listenGameRealtime();
+        }
+    });
 }

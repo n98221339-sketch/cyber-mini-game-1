@@ -136,7 +136,11 @@
                     </div>
                     <div class="player-list" id="lobby-players"></div>
                     <div class="lobby-footer">
-                        <button class="btn-main pulse" id="start-btn" onclick="triggerCountdown()">BẮT ĐẦU NGAY</button>
+                        <button class="btn-main pulse" id="start-btn" onclick="triggerCountdown()"
+                            style="display:none;">
+                            BẮT ĐẦU NGAY
+                        </button>
+
                         <button class="btn-sub" onclick="showSection('noitu-setup')">HỦY</button>
                     </div>
                 </div>
@@ -204,31 +208,13 @@
             </div>
         </div>
     </div>
-    style="display:none; margin-top:20px;">
-    <h3>🎮 Sảnh chờ</h3>
-    <p>Mã phòng: <span id="roomCodeDisplay"></span></p>
-    <p>Đang chờ người chơi vào...</p>
-    </div>
-
-    <div id="notifyBox" style="
-position:fixed;
-top:20px;
-right:20px;
-background:#1f2937;
-color:white;
-padding:10px 15px;
-border-radius:8px;
-display:none;
-z-index:9999;">
-    </div>
-    style="display:none;">
-    <h2>🎮 SẢNH CHỜ</h2>
-    <p>Mã phòng: <span id="roomCodeDisplay"></span></p>
-    <p>Đang chờ người chơi vào...</p>
-    <div id="playerList"></div>
-    </div>
 
     <script src="script.js"></script>
+    <div id="playerList"></div>
+    <div id="player-list"></div>
+    <button id="start-btn" onclick="startGame()" style="display:none;">
+        Bắt đầu
+    </button>
 
 </body>
 

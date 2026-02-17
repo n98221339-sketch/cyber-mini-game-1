@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBERGAME | Natsumi Elite</title>
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/681/681494.png">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+
+<body>
+    <div id="toast-container"></div>
+
+    <div id="auth-screen" class="overlay">
+        <div class="auth-card glass">
+            <h1 class="logo">CYBER<span>GAME</span></h1>
+            <div id="auth-form">
+                <div class="input-group">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="user-input" placeholder="Tên đăng nhập">
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="pass-input" placeholder="Mật khẩu">
+                </div>
+                <div class="auth-btns">
+                    <button onclick="handleAuth('login')" class="btn-main">ĐĂNG NHẬP</button>
+                    <button onclick="handleAuth('register')" class="btn-sub">ĐĂNG KÝ</button>
+                </div>
+            </div>
+            <p class="footer-hint">Thiết kế bởi Natsumi Pro Edition 2026</p>
+        </div>
+    </div>
+
+    <div id="app-interface" class="app-wrapper hidden">
+        <aside class="sidebar">
+            <div class="side-icons">
+                <div class="nav-btn active" onclick="showSection('home')"><i class="fas fa-home"></i></div>
+                <div class="nav-btn" onclick="showSection('game-list')"><i class="fas fa-gamepad"></i></div>
+                <div id="admin-shield" class="nav-btn hidden" onclick="showSection('admin')"><i
+                        class="fas fa-shield-halved"></i></div>
+            </div>
+            <div class="side-user">
+                <div class="gold-box" title="Robux/Gold">
+                    <span id="gold-val">1,000</span> <i class="fas fa-coins"></i>
+                </div>
+                <div class="avatar-wrapper" onclick="openProfile()">
+                    <img id="side-avatar" src="" class="circle-avatar">
+                    <div class="online-dot"></div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Tìm kiếm game Natsumi...">
+                </div>
+                <div class="user-header" onclick="openProfile()">
+                    <span id="user-display">Guest</span>
+                    <i id="v-badge" class="fas fa-check-circle verified hidden"></i>
+                </div>
+            </header>
+
+            <section id="sec-home" class="page">
+                <div class="hero">
+                    <h1>Xin chào, <span id="greet-name">Player</span>!</h1>
+                    <p>Chào mừng bạn quay trở lại hệ thống.</p>
+                </div>
+                <div class="grid">
+                    <div class="card" onclick="showSection('noitu-setup')">
+                        <div class="thumb purple"><i class="fas fa-font"></i></div>
+                        <div class="info"><b>Nối Từ Battle</b>
+                            <p>Đấu với AI Gemini</p>
+                        </div>
+                    </div>
+                    <div class="card" onclick="devMode()">
+                        <div class="thumb ocean"><i class="fas fa-dice"></i></div>
+                        <div class="info"><b>Cờ Tỷ Phú Tycoon</b>
+                            <p>Đang phát triển...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="sec-noitu-setup" class="page hidden">
+                <div class="room-ui glass">
+                    <h2><i class="fas fa-plus-circle"></i> Thiết lập trận đấu</h2>
+                    <div class="setup-grid">
+                        <div class="setup-item">
+                            <label>Số lượng người chơi</label>
+                            <select id="player-count">
+                                <option value="2">2 Người (1vs1)</option>
+                                <option value="4">4 Người</option>
+                                <option value="10">10 Người</option>
+                            </select>
+                        </div>
+                        <div class="setup-item">
+                            <label>Chế độ đấu</label>
+                            <select id="game-mode">
+                                <option value="bot">Đấu với Bot Gemini (AI)</option>
+                                <option value="player">Đấu với người chơi khác</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="room-btns">
+                        <button class="btn-create" onclick="createRoom()">TẠO PHÒNG MỚI</button>
+                        <div class="divider">HOẶC NHẬP MÃ</div>
+                        <div class="otp-row" id="otp-container">
+                            <input type="text" maxlength="1" class="otp-input">
+                            <input type="text" maxlength="1" class="otp-input">
+                            <input type="text" maxlength="1" class="otp-input">
+                            <input type="text" maxlength="1" class="otp-input">
+                            <input type="text" maxlength="1" class="otp-input">
+                            <input type="text" maxlength="1" class="otp-input">
+                        </div>
+                        <button class="btn-join" onclick="joinRoom()">VÀO PHÒNG</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="sec-lobby" class="page hidden">
+                <div class="lobby-ui glass">
+                    <div class="lobby-header">
+                        <h3>Sảnh Chờ Nối Từ</h3>
+                        <div class="room-badge">Mã phòng: <span id="display-room-code">------</span></div>
+                    </div>
+                    <div class="player-list" id="lobby-players"></div>
+                    <div class="lobby-footer">
+                        <button class="btn-main pulse" id="start-btn" onclick="triggerCountdown()">BẮT ĐẦU NGAY</button>
+                        <button class="btn-sub" onclick="showSection('noitu-setup')">HỦY</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="sec-game-play" class="page hidden">
+                <div class="game-container">
+                    <div class="game-header">
+                        <div class="turn-indicator" id="turn-info">Đang chờ...</div>
+                        <div class="last-word-box">Từ hiện tại: <span id="current-target">---</span></div>
+                    </div>
+                    <div class="chat-area" id="game-messages"></div>
+                    <div class="game-controls">
+                        <div class="input-wrapper chat-box">
+                            <input type="text" id="chat-input" placeholder="Nhắn tin..."
+                                onkeypress="handleGameInput(event, 'chat')">
+                            <button onclick="sendGameAction('chat')"><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                        <div class="input-wrapper word-box">
+                            <input type="text" id="word-input" placeholder="Nhập từ nối..."
+                                onkeypress="handleGameInput(event, 'word')">
+                            <button onclick="sendGameAction('word')">GỬI TỪ</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="sec-admin" class="page hidden">
+                <div class="admin-panel glass">
+                    <h3><i class="fas fa-shield-check"></i> Natsumi Super Admin</h3>
+                    <div class="admin-grid">
+                        <button class="btn-main" onclick="buff('gold')">BUFF 1M GOLD</button>
+                        <button class="btn-sub" onclick="clearData()">RESET DATABASE</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="countdown-screen" class="overlay hidden">
+        <h1 id="cd-number">3</h1>
+    </div>
+
+    <div id="profile-modal" class="modal hidden">
+        <div class="modal-content glass">
+            <h2>Thiết lập hồ sơ</h2>
+            <div class="profile-preview">
+                <img id="preview-img" src="" class="circle-avatar big">
+            </div>
+            <div class="input-group">
+                <label>Tên hiển thị</label>
+                <input type="text" id="new-name" placeholder="Nhập tên mới...">
+            </div>
+            <div class="input-group">
+                <label>Ảnh đại diện (Link/URL)</label>
+                <input type="text" id="new-avatar-link" placeholder="Dán link ảnh vào đây...">
+            </div>
+            <div class="input-group">
+                <label>Hoặc tải ảnh từ máy</label>
+                <input type="file" id="new-avatar-file" accept="image/*">
+            </div>
+            <div class="m-btns">
+                <button onclick="closeProfile()" class="btn-sub">HỦY</button>
+                <button onclick="saveProfile()" class="btn-main">LƯU THAY ĐỔI</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

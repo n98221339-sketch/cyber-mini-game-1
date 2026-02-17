@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+
 </head>
 
 <body>
@@ -89,6 +91,8 @@
             </section>
 
             <section id="sec-noitu-setup" class="page hidden">
+                <button class="btn-join" onclick="joinRoom()">VÀO PHÒNG</button>
+
                 <div class="room-ui glass">
                     <h2><i class="fas fa-plus-circle"></i> Thiết lập trận đấu</h2>
                     <div class="setup-grid">
@@ -200,8 +204,32 @@
             </div>
         </div>
     </div>
+    style="display:none; margin-top:20px;">
+    <h3>🎮 Sảnh chờ</h3>
+    <p>Mã phòng: <span id="roomCodeDisplay"></span></p>
+    <p>Đang chờ người chơi vào...</p>
+    </div>
+
+    <div id="notifyBox" style="
+position:fixed;
+top:20px;
+right:20px;
+background:#1f2937;
+color:white;
+padding:10px 15px;
+border-radius:8px;
+display:none;
+z-index:9999;">
+    </div>
+    style="display:none;">
+    <h2>🎮 SẢNH CHỜ</h2>
+    <p>Mã phòng: <span id="roomCodeDisplay"></span></p>
+    <p>Đang chờ người chơi vào...</p>
+    <div id="playerList"></div>
+    </div>
 
     <script src="script.js"></script>
+
 </body>
 
 </html>

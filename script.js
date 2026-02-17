@@ -1,15 +1,29 @@
 // 1. Firebase Config
 const firebaseConfig = {
-    apiKey: "AIza...",
+    apiKey: "AIzaSyDKBP6jaGk8g5I8-9FcRi3KQCjkDRGeGzk",
     authDomain: "cyberminigame.firebaseapp.com",
     databaseURL: "https://cyberminigame-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "cyberminigame",
-    storageBucket: "cyberminigame.appspot.com",
-    messagingSenderId: "...",
-    appId: "..."
+    storageBucket: "cyberminigame.firebasestorage.app",
+    messagingSenderId: "554941351234",
+    appId: "1:554941351234:web:42247ece048eb2f800f4db"
 };
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+    firebase.auth().signInAnonymously()
+        .then(() => {
+            console.log("Đã login anonymous");
+        })
+        .catch((error) => {
+            console.error("Lỗi đăng nhập:", error);
+        });
+
+}
 const database = firebase.database();
+console.log("Đã login anonymous");
+showToast("🟢 Đã kết nối Firebase!");
+
 
 const GEMINI_API_KEY = "AIzaSyBMgN917Q2s8CpFX2kVQlDhfRjTC8gpsHU";
 
@@ -20,6 +34,8 @@ let users = JSON.parse(localStorage.getItem('natsumi_users')) || {
 let currentUser = JSON.parse(localStorage.getItem('natsumi_current')) || null;
 let roomData = { code: "", players: [], mode: "bot" };
 let gameState = { lastWord: "", turn: "user", history: [] };
+let turnTimer = null;
+let turnTimeLeft = 60;
 
 // --- HỆ THỐNG XỬ LÝ NHẬP LIỆU ---
 function handleGameInput(e, type) {
@@ -59,50 +75,56 @@ async function sendGameAction(type) {
                 return showToast(`Phải bắt đầu bằng chữ "${lastPart.toUpperCase()}"!`);
             }
         }
-
-        addMessage("user", `[TỪ] ${word.toUpperCase()}`);
-        gameState.lastWord = word;
-        wordIn.value = "";
-        document.getElementById('current-target').innerText = word.toUpperCase();
-
         if (roomData.mode === 'bot') {
             document.getElementById('turn-info').innerText = "Bot đang nghĩ...";
             const botWord = await getBotResponse(word);
             processBotTurn(botWord);
+        } else if (roomData.mode === 'player') {
+
+            database.ref("rooms/" + roomData.code).once("value")
+                .then(snapshot => {
+
+                    const data = snapshot.val();
+                    if (data.turn !== currentUser.name) {
+                        return showToast("Chưa tới lượt bạn!");
+                    }
+
+                    database.ref("rooms/" + roomData.code).update({
+                        lastWord: word
+                    });
+
+                    gameState.lastWord = word;
+                    document.getElementById('current-target').innerText = word.toUpperCase();
+
+                    addMessage(currentUser.name, `[TỪ] ${word.toUpperCase()}`);
+
+                    nextTurn();
+                });
         }
     }
 }
 
 // --- HÀM HIỂN THỊ TIN NHẮN ---
 function addMessage(sender, text) {
+
+    const colors = [
+        "#ff0000", "#00ff00", "#00ffff",
+        "#ff00ff", "#ffff00", "#ff8800"
+    ];
+
+    const colorIndex =
+        sender.split("").reduce((a, b) => a + b.charCodeAt(0), 0) % colors.length;
+
+    const color = colors[colorIndex];
+
     const box = document.getElementById('game-messages');
+
     const msgDiv = document.createElement('div');
-    msgDiv.className = "msg-bubble"; // Nên thêm class này vào CSS để style đẹp hơn
+    msgDiv.style.margin = "8px 0";
 
-    // Inline style bổ sung
-    msgDiv.style.margin = "10px 0";
-    msgDiv.style.padding = "10px 15px";
-    msgDiv.style.borderRadius = "12px";
-    msgDiv.style.maxWidth = "80%";
-    msgDiv.style.width = "fit-content";
-    msgDiv.style.fontSize = "14px";
-    msgDiv.style.wordBreak = "break-all";
+    msgDiv.innerHTML =
+        `<b style="color:${color}">${sender}</b>: ${text}`;
 
-    if (sender === "user") {
-        msgDiv.style.background = "linear-gradient(90deg, #8a2be2, #4b0082)";
-        msgDiv.style.color = "white";
-        msgDiv.style.marginLeft = "auto";
-    } else if (sender === "bot") {
-        msgDiv.style.background = "#333";
-        msgDiv.style.color = "#00ffcc";
-        msgDiv.style.border = "1px solid #00ffcc";
-    } else {
-        msgDiv.style.background = "rgba(255,255,255,0.1)";
-        msgDiv.style.color = "#aaa";
-        msgDiv.style.margin = "10px auto";
-    }
-
-    msgDiv.innerText = text;
     box.appendChild(msgDiv);
     box.scrollTop = box.scrollHeight;
 }
@@ -165,6 +187,8 @@ function loginSuccess() {
     document.getElementById('app-interface').classList.remove('hidden');
     renderUI();
     showSection('home');
+
+    listenRoomList(); // 👈 THÊM DÒNG NÀY
 }
 
 function renderUI() {
@@ -181,14 +205,32 @@ function renderUI() {
 
 // --- QUẢN LÝ PHÒNG (FIX LỖI VÀO PHÒNG) ---
 function createRoom() {
-    const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    const roomCode = generateRoomCode();
+    const playerName = currentUser.name;
+
+    database.ref("rooms/" + roomCode).set({
+        maxPlayers: 10,
+        turn: "",
+        lastWord: "",
+        players: {
+            [playerName]: {
+                avatar: currentUser.avatar,
+                gold: currentUser.gold
+            }
+        }
+    });
+
     roomData.code = roomCode;
-    roomData.mode = document.getElementById('game-mode').value;
+
+    showToast("Tạo phòng thành công!");
 
     document.getElementById('display-room-code').innerText = roomCode;
-    showSection('lobby');
-    updateLobbyUI();
+
+    showSection('lobby');   // 👈 QUAN TRỌNG
+    listenLobby();          // 👈 QUAN TRỌNG
 }
+
 
 function joinRoom() {
     const inputs = document.querySelectorAll('.otp-input');
@@ -199,14 +241,28 @@ function joinRoom() {
         return showToast("Vui lòng nhập đủ 6 ký tự mã phòng!");
     }
 
-    // Kiểm tra mã phòng (Ở bản offline này ta check với roomData hiện tại)
-    if (inputCode === roomData.code) {
-        showToast("Vào phòng thành công!");
-        showSection('lobby');
-        updateLobbyUI();
-    } else {
-        showToast("Mã phòng không chính xác hoặc không tồn tại!");
-    }
+    const roomRef = database.ref("rooms/" + inputCode);
+
+    roomRef.once("value").then(snapshot => {
+        if (snapshot.exists()) {
+
+
+            // THÊM NGƯỜI CHƠI VÀO ROOM
+            roomRef.child("players/" + currentUser.name).set({
+                avatar: currentUser.avatar,
+                gold: currentUser.gold
+            });
+
+            roomData.code = inputCode;
+            showToast("Vào phòng thành công!");
+            document.getElementById('display-room-code').innerText = inputCode;
+            showSection('lobby');
+            listenLobby();
+
+        } else {
+            showToast("Mã phòng không tồn tại!");
+        }
+    });
 }
 
 function updateLobbyUI() {
@@ -305,17 +361,327 @@ function triggerCountdown() {
         }
     }, 1000);
 }
-
 function startGame() {
-    gameState = { lastWord: "", turn: "user", history: [] };
-    document.getElementById('game-messages').innerHTML = "";
-    showSection('game-play');
-    addMessage("system", "Trận đấu bắt đầu! Mời bạn nhập từ đầu tiên.");
+    database.ref("rooms/" + roomData.code + "/players")
+        .once("value").then(snapshot => {
+
+            const data = snapshot.val();
+            if (!data) return showToast("Không có người chơi!");
+
+            const players = Object.keys(data);
+
+            const randomIndex = Math.floor(Math.random() * players.length);
+            const firstPlayer = players[randomIndex];
+
+            database.ref("rooms/" + roomData.code).update({
+                turn: firstPlayer,
+                lastWord: ""
+            });
+
+            showSection('game-play');
+
+            listenGameRealtime(); // ← BẮT BUỘC CÓ DÒNG NÀY
+        });
 }
+
 
 function saveAllData() {
     localStorage.setItem('natsumi_users', JSON.stringify(users));
     localStorage.setItem('natsumi_current', JSON.stringify(currentUser));
 }
+function listenLobby() {
 
-window.onload = () => { if (currentUser) loginSuccess(); };
+    database.ref("rooms/" + roomData.code + "/players")
+        .on("value", snapshot => {
+
+            const players = snapshot.val();
+            if (!players) return;
+
+            const list = document.getElementById("lobby-players");
+            list.innerHTML = "";
+
+            for (let name in players) {
+                list.innerHTML += `
+                <div style="background:rgba(255,255,255,0.05);
+                            padding:15px;border-radius:10px;
+                            display:flex;align-items:center;gap:15px;">
+                    <img src="${players[name].avatar}"
+                         style="width:50px;height:50px;border-radius:50%;">
+                    <div>
+                        <p style="margin:0;font-weight:bold;">${name}</p>
+                    </div>
+                </div>`;
+            }
+
+        });
+}
+
+function listenGameRealtime() {
+
+    database.ref("rooms/" + roomData.code).on("value", snapshot => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        gameState.lastWord = data.lastWord || "";
+
+        document.getElementById("current-target").innerText =
+            data.lastWord || "MỜI RA TỪ";
+
+        document.getElementById("turn-info").innerText =
+            "Lượt của: " + data.turn;
+
+        if (data.turn === currentUser.name) {
+            startTurnTimer();
+        } else {
+            stopTurnTimer();
+        }
+    });
+}
+function startTurnTimer() {
+
+    turnTimeLeft = 60;
+
+    stopTurnTimer();
+
+    turnTimer = setInterval(() => {
+
+        turnTimeLeft--;
+
+        document.getElementById("turn-info").innerText =
+            "Lượt của bạn - Còn " + turnTimeLeft + "s";
+
+        if (turnTimeLeft <= 0) {
+            clearInterval(turnTimer);
+            skipTurn();
+        }
+
+    }, 1000);
+}
+
+function stopTurnTimer() {
+    if (turnTimer) clearInterval(turnTimer);
+}
+function skipTurn() {
+
+    database.ref("rooms/" + roomData.code)
+        .once("value").then(roomSnap => {
+
+            const room = roomSnap.val();
+            const currentTurn = room.turn;
+
+            database.ref("rooms/" + roomData.code + "/players")
+                .once("value").then(snapshot => {
+
+                    const players = Object.keys(snapshot.val());
+                    const currentIndex = players.indexOf(currentTurn);
+
+                    let nextIndex = (currentIndex + 1) % players.length;
+                    let nextPlayer = players[nextIndex];
+
+                    database.ref("rooms/" + roomData.code).update({
+                        turn: nextPlayer
+                    });
+
+                });
+        });
+}
+
+function nextTurn() {
+
+    database.ref("rooms/" + roomData.code + "/players")
+        .once("value").then(snapshot => {
+
+            const players = Object.keys(snapshot.val());
+
+            database.ref("rooms/" + roomData.code)
+                .once("value").then(snap => {
+
+                    const data = snap.val();
+                    const currentTurn = data.turn;
+
+                    const currentIndex = players.indexOf(currentTurn);
+                    let nextIndex = (currentIndex + 1) % players.length;
+                    let nextPlayer = players[nextIndex];
+
+                    database.ref("rooms/" + roomData.code).update({
+                        turn: nextPlayer
+                    });
+
+                });
+
+        });
+}
+
+function listenRoomList() {
+
+    database.ref("rooms").on("value", snapshot => {
+
+        const rooms = snapshot.val();
+        const box = document.getElementById("room-list");
+
+        if (!rooms) {
+            box.innerHTML = "<p style='opacity:0.6;'>Không có phòng nào.</p>";
+            return;
+        }
+
+        box.innerHTML = "";
+
+        for (let code in rooms) {
+
+            const playerCount = rooms[code].players
+                ? Object.keys(rooms[code].players).length
+                : 0;
+
+            box.innerHTML += `
+                <div onclick="quickJoinRoom('${code}')"
+                     style="
+                        background:rgba(255,255,255,0.05);
+                        padding:12px;
+                        border-radius:10px;
+                        cursor:pointer;
+                        border:1px solid rgba(255,255,255,0.1);
+                        transition:0.2s;">
+                    <b style="color:#a855f7;">${code}</b>
+                    <span style="float:right;opacity:0.7;">
+                        👥 ${playerCount}
+                    </span>
+                </div>
+            `;
+        }
+
+    });
+}
+
+function quickJoinRoom(code) {
+
+    database.ref("rooms/" + code).once("value")
+        .then(snapshot => {
+
+            if (!snapshot.exists()) {
+                return showToast("Phòng không tồn tại!");
+            }
+
+            database.ref("rooms/" + code + "/players/" + currentUser.name)
+                .set({
+                    avatar: currentUser.avatar,
+                    gold: currentUser.gold
+                });
+
+            roomData.code = code;
+            showToast("Vào phòng thành công!");
+            document.getElementById('display-room-code').innerText = code;
+            showSection('lobby');
+            listenLobby();
+        });
+}
+function listenRoomList() {
+    const roomListDiv = document.getElementById("room-list");
+
+    database.ref("rooms").on("value", snapshot => {
+        const roomCodeEl = document.getElementById("roomCode");
+
+        if (roomCodeEl) {
+            roomCodeEl.innerHTML = code;
+        }
+
+
+        if (!snapshot.exists()) {
+            roomListDiv.innerHTML = "<p>Chưa có phòng nào</p>";
+            return;
+        }
+
+        snapshot.forEach(child => {
+            const room = child.val();
+            const roomCode = child.key;
+
+            const div = document.createElement("div");
+            div.style.padding = "10px";
+            div.style.background = "#1f1f1f";
+            div.style.borderRadius = "8px";
+            div.style.cursor = "pointer";
+
+            div.innerHTML = `
+        <b>Phòng:</b> ${roomCode}<br>
+        Người chơi: ${Object.keys(room.players || {}).length}/${room.maxPlayers}
+      `;
+
+            div.onclick = () => {
+                joinRoomByCode(roomCode);
+            };
+
+            roomListDiv.appendChild(div);
+        });
+    });
+}
+function joinRoomByCode(roomCode) {
+    const playerName = document.getElementById("user-display").innerText;
+
+    database.ref("rooms/" + roomCode + "/players/" + playerName).set({
+        score: 0
+    });
+
+    alert("Đã vào phòng " + roomCode);
+}
+window.onload = function () {
+    listenRoomList();
+};
+function listenRoomList() {
+
+    const roomListDiv = document.getElementById("room-list");
+
+    if (!roomListDiv) return; // CHỐNG LỖI NULL
+
+    database.ref("rooms").on("value", snapshot => {
+
+        roomListDiv.innerHTML = "";
+
+        if (!snapshot.exists()) {
+            roomListDiv.innerHTML = "<p>Chưa có phòng nào</p>";
+            return;
+        }
+
+        snapshot.forEach(child => {
+            const room = child.val();
+            const roomCode = child.key;
+
+            const div = document.createElement("div");
+            div.style.padding = "10px";
+            div.style.background = "#1f1f1f";
+            div.style.borderRadius = "8px";
+            div.style.cursor = "pointer";
+
+            div.innerHTML = `
+                <b>Phòng:</b> ${roomCode}<br>
+                Người chơi: ${Object.keys(room.players || {}).length}/${room.maxPlayers}
+            `;
+
+            div.onclick = () => {
+                joinRoomByCode(roomCode);
+            };
+
+            roomListDiv.appendChild(div);
+        });
+
+    });
+}
+function generateRoomCode() {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let code = "";
+
+    for (let i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+
+    return code;
+}
+function showNotify(text) {
+    const box = document.getElementById("notifyBox");
+    if (!box) return;
+
+    box.innerText = text;
+    box.style.display = "block";
+
+    setTimeout(() => {
+        box.style.display = "none";
+    }, 2000);
+}

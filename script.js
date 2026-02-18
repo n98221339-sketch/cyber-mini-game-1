@@ -54,8 +54,29 @@ function validateWord(word) {
     if (!word) return { ok: false, msg: "Không được để trống" };
     if (/\d/.test(word)) return { ok: false, msg: "Không được nhập số" };
     if (!/^[a-zA-ZÀ-ỹ\s]+$/.test(word)) return { ok: false, msg: "Không ký tự đặc biệt" };
+
     const parts = word.trim().split(/\s+/);
     if (parts.length !== 2) return { ok: false, msg: "Chỉ được nhập đúng 2 tiếng" };
+
+    const w1 = parts[0].toLowerCase();
+    const w2 = parts[1].toLowerCase();
+
+    // Chặn 2 tiếng giống hệt nhau (vd: aaaa aaaa, bbb bbb)
+    if (w1 === w2) return { ok: false, msg: "Hai tiếng không được giống nhau!" };
+
+    // Chặn từ lặp ký tự (vd: aaaa, bbbb, cccc - cùng 1 ký tự lặp)
+    if (/^(.)+$/.test(w1) || /^(.)+$/.test(w2))
+        return { ok: false, msg: "Từ không hợp lệ (lặp ký tự)!" };
+
+    // Chặn từ không có nguyên âm tiếng Việt (không phải từ thật)
+    const vowelRegex = /[aăâeêiouôơưyáàảãạắằẳẵặấầẩẫậéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ]/i;
+    if (!vowelRegex.test(w1) || !vowelRegex.test(w2))
+        return { ok: false, msg: "Từ phải có nguyên âm tiếng Việt!" };
+
+    // Chặn từ quá ngắn (1-2 ký tự mỗi tiếng - không phải từ thật)
+    if (w1.length < 2 || w2.length < 2)
+        return { ok: false, msg: "Mỗi tiếng phải có ít nhất 2 ký tự!" };
+
     return { ok: true };
 }
 
@@ -574,13 +595,14 @@ function sendWord() {
     const text = input.value.trim();
     if (!text) return;
 
-    const words = text.split(" ");
-    if (words.length !== 2) {
-        showWebNotice("⚠ Chỉ được nhập đúng 2 từ!");
+    const newWord = text.toLowerCase();
+
+    // Validate từ trước khi gửi
+    const check = validateWord(newWord);
+    if (!check.ok) {
+        showWebNotice("⚠ " + check.msg);
         return;
     }
-
-    const newWord = text.toLowerCase();
 
     if (roomData.code) {
         // Kiểm tra lượt trước khi gửi

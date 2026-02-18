@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CYBERGAME | Natsumi Elite</title>
-    <link rel="icon" href="https://i.ibb.co/BKy534db/Kh-ng-c-ti-u-1.png">
+    <link rel="icon" href="https://cdn-icons-png.flaticon.com/512/681/681494.png">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -225,24 +225,25 @@
                     <div class="chat-area" id="game-messages"></div>
                     <div class="game-controls">
 
-                        <div class="input-wrapper chat-box">
-                            <input type="text" id="chat-input" placeholder="Nhắn tin..."
-                                onkeydown="handleGameInput(event, 'chat')">
-
-                            <button onclick="sendChat()">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                        </div>
+                        <!-- 1. Từ hiện tại -->
                         <div class="current-word-box">
                             Từ hiện tại: <span id="current-word">---</span>
                         </div>
 
+                        <!-- 2. Nhập từ nối -->
                         <div class="input-wrapper word-box">
                             <input type="text" id="word-input" placeholder="Nhập từ nối..."
                                 onkeydown="handleGameInput(event, 'word')">
+                            <button id="word-send-btn" onclick="sendWord()">GỬI TỪ</button>
+                        </div>
 
-                            <button id="word-send-btn" onclick="sendWord()" class="...">GỬI TỪ</button>
-
+                        <!-- 3. Nhắn tin -->
+                        <div class="input-wrapper chat-box">
+                            <input type="text" id="chat-input" placeholder="Nhắn tin..."
+                                onkeydown="handleGameInput(event, 'chat')">
+                            <button onclick="sendChat()">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
                         </div>
 
                     </div>
@@ -269,9 +270,9 @@
 
     <div id="profile-modal" class="modal hidden">
         <div class="modal-content glass">
-            <h2>Thiết lập hồ sơ</h2>
-            <div class="profile-preview">
-                <img id="preview-img" src="" class="circle-avatar big">
+            <h2 style="text-align:center;margin-bottom:20px;">Thiết lập hồ sơ</h2>
+            <div class="profile-preview" style="display:flex;justify-content:center;align-items:center;margin-bottom:20px;">
+                <img id="preview-img" src="" class="circle-avatar big" style="display:block;margin:0 auto;">
             </div>
             <div class="input-group">
                 <label>Tên hiển thị</label>
@@ -310,4 +311,3 @@
 </body>
 
 </html>
-

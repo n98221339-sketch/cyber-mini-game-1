@@ -128,7 +128,8 @@
                                 <div class="player-count-row">
                                     <button class="count-btn" onclick="changeCount(-1)">−</button>
                                     <input type="number" id="player-count" value="2" min="2" max="200"
-                                           style="width:70px;text-align:center;background:#18181b;border:1px solid rgba(255,255,255,0.1);
+                                           oninput="let v=parseInt(this.value);if(v>200)this.value=200;if(v<2&&this.value.length>0)this.value=2;"
+                                       style="width:70px;text-align:center;background:#18181b;border:1px solid rgba(255,255,255,0.1);
                                                   color:white;border-radius:10px;padding:8px;font-size:1.1rem;font-weight:bold;">
                                     <button class="count-btn" onclick="changeCount(1)">+</button>
                                     <span style="color:#a1a1aa;font-size:0.8rem;margin-left:8px;">tối đa 200</span>

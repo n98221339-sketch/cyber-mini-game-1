@@ -330,9 +330,23 @@ body {
 }
 
 .game-controls {
-    display              : grid;
-    grid-template-columns: 1fr 1fr;
-    gap                  : 15px;
+    display       : flex;
+    flex-direction: column;
+    gap           : 10px;
+}
+
+.current-word-box {
+    text-align   : center;
+    font-weight  : bold;
+    color        : var(--text-dim);
+    font-size    : 0.9rem;
+    padding      : 8px 0 4px 0;
+}
+
+.current-word-box span {
+    color      : var(--purple);
+    font-size  : 1rem;
+    font-weight: bold;
 }
 
 .input-wrapper {
@@ -651,3 +665,16 @@ body {
 #online-panel::-webkit-scrollbar { width: 4px; }
 #online-panel::-webkit-scrollbar-track { background: transparent; }
 #online-panel::-webkit-scrollbar-thumb { background: rgba(168,85,247,0.4); border-radius: 4px; }
+
+/* Avatar profile căn giữa */
+.profile-preview {
+    display        : flex;
+    justify-content: center;
+    align-items    : center;
+    margin-bottom  : 20px;
+}
+
+.profile-preview img {
+    display : block;
+    margin  : 0 auto;
+}

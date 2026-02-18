@@ -356,6 +356,11 @@ function closeProfile() {
 
 // --- TIỆN ÍCH ---
 function showSection(id) {
+    // Nếu đang trong phòng và bấm sang trang khác (không phải game) thì thoát phòng
+    if (roomData.code && id !== "sec-game-play" && id !== "sec-lobby") {
+        leaveRoom();
+        return;
+    }
     document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
     document.getElementById("sec-" + id).classList.remove("hidden");
 }
@@ -745,6 +750,11 @@ function resetRoom() {
 }
 
 function goHome() {
+    // Nếu đang trong phòng thì thoát trước
+    if (roomData.code) {
+        leaveRoom();
+        return;
+    }
     resetRoom();
     showSection("home");
 }
@@ -1108,4 +1118,91 @@ function updateOnlinePanel(players, currentTurn) {
     const searchInput = document.getElementById('panel-search');
     const q = searchInput ? searchInput.value : '';
     filterPanel(q);
+}
+
+
+// ===== THOÁT PHÒNG =====
+function leaveRoom() {
+    if (!roomData.code) return;
+
+    const code = roomData.code;
+    const myName = currentUser.name;
+
+    // Lấy danh sách players trước khi thoát
+    database.ref("rooms/" + code + "/players").once("value").then(snap => {
+        const players = snap.val();
+        if (!players) return doLeave(code, myName);
+
+        const playerKeys = Object.keys(players);
+
+        // Xóa mình khỏi phòng
+        database.ref("rooms/" + code + "/players/" + myName).remove();
+
+        // Thông báo thoát
+        database.ref("rooms/" + code + "/messages").push({
+            sender: "system",
+            text: `🚪 ${myName} đã rời phòng!`,
+            type: "system",
+            timestamp: Date.now()
+        });
+
+        // Còn đúng 1 người → người đó thắng 100 vàng
+        const remaining = playerKeys.filter(k => k !== myName);
+        if (remaining.length === 1) {
+            const winner = remaining[0];
+            database.ref("rooms/" + code + "/messages").push({
+                sender: "system",
+                text: `🏆 ${winner} là người ở lại cuối cùng! +100 Gold!`,
+                type: "system",
+                timestamp: Date.now()
+            });
+
+            // Cộng vàng nếu người ở lại là mình (trường hợp người khác thoát)
+            if (winner === currentUser.name) {
+                currentUser.gold = (currentUser.gold || 0) + 100;
+                users[currentUser.name].gold = currentUser.gold;
+                saveAllData();
+                renderUI();
+                showToast("🏆 Bạn ở lại cuối cùng! +100 Gold!");
+            }
+        }
+
+        // Nếu không còn ai → xóa phòng
+        if (remaining.length === 0) {
+            database.ref("rooms/" + code).remove();
+        }
+
+        doLeave(code, myName);
+    });
+}
+
+function doLeave(code, myName) {
+    stopTurnTimer();
+    window._gameStarted = false;
+
+    // Reset roomData
+    roomData.code = "";
+    roomData.mode = "";
+    currentRoom = null;
+    if (currentRoomRef) {
+        currentRoomRef.off();
+        currentRoomRef = null;
+    }
+
+    // Xóa listeners
+    database.ref("rooms/" + code).off();
+    database.ref("rooms/" + code + "/messages").off();
+
+    // Reset panel search
+    const search = document.getElementById("panel-search");
+    if (search) search.value = "";
+    _allPlayers = {};
+    const panel = document.getElementById("online-panel");
+    if (panel) panel.innerHTML = "";
+
+    showToast("👋 Đã thoát phòng!");
+    // Chuyển về home trực tiếp (không qua goHome để tránh vòng lặp)
+    document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
+    const home = document.getElementById("sec-home");
+    if (home) home.classList.remove("hidden");
 }

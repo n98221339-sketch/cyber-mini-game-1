@@ -826,3 +826,20 @@ function clearData() {
         location.reload();
     }
 }
+
+function logout() {
+    if (!confirm("Bạn có chắc muốn đăng xuất không?")) return;
+
+    resetRoom();
+    currentUser = null;
+    localStorage.removeItem('natsumi_current');
+
+    document.getElementById('app-interface').classList.add('hidden');
+    document.getElementById('auth-screen').classList.remove('hidden');
+
+    // Xóa input
+    document.getElementById('user-input').value = "";
+    document.getElementById('pass-input').value = "";
+
+    showToast("👋 Đã đăng xuất!");
+}

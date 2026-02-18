@@ -451,3 +451,16 @@ body {
     box-shadow  : 0 0 10px var(--purple);
     outline     : none;
 }
+
+/* LOGOUT BUTTON */
+.logout-btn {
+    color     : #ef4444 !important;
+    margin-top: 10px;
+    font-size : 20px !important;
+}
+
+.logout-btn:hover {
+    color      : #ff6b6b !important;
+    transform  : scale(1.15) !important;
+    text-shadow: 0 0 12px #ef4444;
+}

@@ -37,11 +37,12 @@
             <p class="footer-hint">Thiết kế bởi Natsumi Pro Edition 2026</p>
         </div>
     </div>
+    <div id="loading-screen">Loading...</div>
 
     <div id="app-interface" class="app-wrapper hidden">
         <aside class="sidebar">
             <div class="side-icons">
-                <div class="nav-btn active" onclick="showSection('home')"><i class="fas fa-home"></i></div>
+                <div class="nav-btn active" onclick="goHome()"><i class="fas fa-home"></i></div>
                 <div class="nav-btn" onclick="showSection('game-list')"><i class="fas fa-gamepad"></i></div>
                 <div id="admin-shield" class="nav-btn hidden" onclick="showSection('admin')"><i
                         class="fas fa-shield-halved"></i></div>
@@ -61,7 +62,7 @@
             <header class="top-bar">
                 <div class="search-box">
                     <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Tìm kiếm game Natsumi...">
+                    <input type="text" id="search-input" placeholder="Tìm kiếm game Natsumi...">
                 </div>
                 <div class="user-header" onclick="openProfile()">
                     <span id="user-display">Guest</span>
@@ -91,7 +92,7 @@
             </section>
 
             <section id="sec-noitu-setup" class="page hidden">
-                <button class="btn-join" onclick="joinRoom()">VÀO PHÒNG</button>
+
 
                 <div class="room-ui glass">
                     <h2><i class="fas fa-plus-circle"></i> Thiết lập trận đấu</h2>
@@ -154,17 +155,27 @@
                     </div>
                     <div class="chat-area" id="game-messages"></div>
                     <div class="game-controls">
+
                         <div class="input-wrapper chat-box">
                             <input type="text" id="chat-input" placeholder="Nhắn tin..."
-                                onkeypress="handleGameInput(event, 'chat')">
-                            <button onclick="sendGameAction('chat')"><i class="fas fa-paper-plane"></i></button>
+                                onkeydown="handleGameInput(event, 'chat')">
+
+                            <button onclick="sendGameAction('chat')">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
                         </div>
+
                         <div class="input-wrapper word-box">
                             <input type="text" id="word-input" placeholder="Nhập từ nối..."
-                                onkeypress="handleGameInput(event, 'word')">
-                            <button onclick="sendGameAction('word')">GỬI TỪ</button>
+                                onkeydown="handleGameInput(event, 'word')">
+
+                            <button onclick="sendGameAction('word')">
+                                GỬI TỪ
+                            </button>
                         </div>
+
                     </div>
+
                 </div>
             </section>
 
@@ -210,11 +221,6 @@
     </div>
 
     <script src="script.js"></script>
-    <div id="playerList"></div>
-    <div id="player-list"></div>
-    <button id="start-btn" onclick="startGame()" style="display:none;">
-        Bắt đầu
-    </button>
 
 </body>
 

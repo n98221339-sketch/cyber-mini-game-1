@@ -20,8 +20,8 @@
 body {
     background: var(--bg);
     color     : var(--text-main);
-    height    : 100vh;
-    overflow  : hidden;
+    min-height: 100vh;
+    overflow-x: hidden;
 }
 
 .hidden {
@@ -284,15 +284,16 @@ body {
 }
 
 .chat-area {
-    flex          : 1;
-    background    : rgba(0, 0, 0, 0.2);
-    border-radius : 20px;
-    padding       : 20px;
-    overflow-y    : auto;
-    margin-bottom : 20px;
-    display       : flex;
-    flex-direction: column;
-    gap           : 10px;
+    flex           : 1;
+    background     : rgba(0, 0, 0, 0.2);
+    border-radius  : 20px;
+    padding        : 20px;
+    overflow-y     : auto;
+    margin-bottom  : 20px;
+    display        : flex;
+    flex-direction : column;
+    gap            : 10px;
+    scroll-behavior: smooth;
 }
 
 .msg {
@@ -443,4 +444,10 @@ body {
     border-radius: 10px;
     color        : var(--purple);
     font-weight  : bold;
+}
+
+.otp-input:focus {
+    border-color: var(--purple);
+    box-shadow  : 0 0 10px var(--purple);
+    outline     : none;
 }

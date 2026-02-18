@@ -1,3 +1,5 @@
+const wordIn = document.getElementById("word-input");
+const chatIn = document.getElementById("chat-input");
 let currentRoom = null;
 let currentRoomRef = null;
 // 1. Firebase Config
@@ -41,78 +43,80 @@ let turnTimeLeft = 60;
 
 // --- HỆ THỐNG XỬ LÝ NHẬP LIỆU ---
 function handleGameInput(e, type) {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
+        e.preventDefault();
         sendGameAction(type);
     }
 }
 
+
 // --- HÀM GỬI HÀNH ĐỘNG (CHAT & NỐI TỪ) ---
 async function sendGameAction(type) {
-    const chatIn = document.getElementById('chat-input');
-    const wordIn = document.getElementById('word-input');
-
     if (type === 'chat') {
         const msg = chatIn.value.trim();
         if (!msg) return;
-        addMessage("user", `[CHAT] ${msg}`);
+        addMessage(currentUser.name, msg);
         chatIn.value = "";
-    }
+    } else if (type === 'word') {
 
-    else if (type === 'word') {
         const word = wordIn.value.trim().toLowerCase();
         if (!word) return;
 
-        // --- FIX: CHẶN TỪ CÓ 3 TIẾNG TRỞ LÊN ---
         const wordCount = word.split(/\s+/).length;
-        if (wordCount > 2) {
-            return showToast("Chỉ được nhập tối đa 2 từ (từ ghép)!");
-        }
-        if (wordCount < 1) return;
 
-        // Logic kiểm tra nối chữ cái đầu
+        if (wordCount > 2) {
+            showToast("❌ Chỉ được nhập tối đa 2 từ!");
+            return;
+        }
+
         if (gameState.lastWord) {
             const lastPart = gameState.lastWord.split(' ').pop();
             const firstPart = word.split(' ')[0];
+
             if (lastPart !== firstPart) {
-                return showToast(`Phải bắt đầu bằng chữ "${lastPart.toUpperCase()}"!`);
+                showToast(`❌ Phải bắt đầu bằng "${lastPart.toUpperCase()}"`);
+                return;
             }
         }
+
+        // HIỂN THỊ LÊN CHAT NGAY
+        addMessage(currentUser.name, word.toUpperCase(), "word");
+
+        gameState.lastWord = word;
+        document.getElementById('current-target').innerText = word.toUpperCase();
+
+        wordIn.value = "";
+
         if (roomData.mode === 'bot') {
             document.getElementById('turn-info').innerText = "Bot đang nghĩ...";
             const botWord = await getBotResponse(word);
             processBotTurn(botWord);
-        } else if (roomData.mode === 'player') {
-
-            database.ref("rooms/" + roomData.code).once("value")
-                .then(snapshot => {
-
-                    const data = snapshot.val();
-                    if (data.turn !== currentUser.name) {
-                        return showToast("Chưa tới lượt bạn!");
-                    }
-
-                    database.ref("rooms/" + roomData.code).update({
-                        lastWord: word
-                    });
-
-                    gameState.lastWord = word;
-                    document.getElementById('current-target').innerText = word.toUpperCase();
-
-                    addMessage(currentUser.name, `[TỪ] ${word.toUpperCase()}`);
-
-                    nextTurn();
-                });
         }
     }
 }
 
+
 // --- HÀM HIỂN THỊ TIN NHẮN ---
-function addMessage(sender, text) {
+function addMessage(sender, text, type = "chat") {
 
     const colors = [
+        // 6 màu cũ
         "#ff0000", "#00ff00", "#00ffff",
-        "#ff00ff", "#ffff00", "#ff8800"
+        "#ff00ff", "#ffff00", "#ff8800",
+
+        // 10 màu mới thêm
+        "#8a2be2",  // tím neon
+        "#ff1493",  // hồng đậm
+        "#00bfff",  // xanh dương sáng
+        "#39ff14",  // xanh lá neon
+        "#ff4500",  // cam đỏ
+        "#7fff00",  // xanh chuối
+        "#1e90ff",  // xanh biển
+        "#ff69b4",  // hồng neon
+        "#ffd700",  // vàng gold
+        "#00fa9a"   // xanh mint
     ];
+
 
     const colorIndex =
         sender.split("").reduce((a, b) => a + b.charCodeAt(0), 0) % colors.length;
@@ -124,12 +128,18 @@ function addMessage(sender, text) {
     const msgDiv = document.createElement('div');
     msgDiv.style.margin = "8px 0";
 
-    msgDiv.innerHTML =
-        `<b style="color:${color}">${sender}</b>: ${text}`;
+    if (type === "word") {
+        msgDiv.innerHTML =
+            `<b style="color:${color}">${sender}</b>: (<b>${text}</b>)`;
+    } else {
+        msgDiv.innerHTML =
+            `<b style="color:${color}">${sender}</b>: ${text}`;
+    }
 
     box.appendChild(msgDiv);
     box.scrollTop = box.scrollHeight;
 }
+
 
 // --- LOGIC BOT AI ---
 async function getBotResponse(userWord) {
@@ -158,7 +168,8 @@ function processBotTurn(word) {
         renderUI();
     } else {
         gameState.lastWord = word;
-        addMessage("bot", `[BOT] ${word.toUpperCase()}`);
+        addMessage("Bot", word.toUpperCase(), "word");
+
         document.getElementById('current-target').innerText = word.toUpperCase();
         document.getElementById('turn-info').innerText = "Lượt của bạn";
     }
@@ -342,10 +353,13 @@ function closeProfile() { document.getElementById('profile-modal').classList.add
 
 // --- TIỆN ÍCH ---
 function showSection(id) {
-    document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-    const target = document.getElementById('sec-' + id);
-    if (target) target.classList.remove('hidden');
+    document.querySelectorAll(".page").forEach(p => {
+        p.classList.add("hidden");
+    });
+
+    document.getElementById("sec-" + id).classList.remove("hidden");
 }
+
 
 function showToast(msg) {
     const container = document.getElementById('toast-container');
@@ -402,6 +416,22 @@ function saveAllData() {
 }
 
 function listenGameRealtime() {
+    // LISTEN CHAT REALTIME
+    firebase.database()
+        .ref("rooms/" + roomData.code + "/messages")
+        .on("child_added", snapshot => {
+
+            const msg = snapshot.val();
+            addMessage(msg.sender, msg.text);
+
+        });
+    if (roomData.mode === "bot") {
+        // Cho phép bot hoạt động
+    } else {
+        return; // Multiplayer thì không chạy bot
+    }
+
+
 
     database.ref("rooms/" + roomData.code).on("value", snapshot => {
         const data = snapshot.val();
@@ -553,6 +583,7 @@ function quickJoinRoom(code) {
                 });
 
             roomData.code = code;
+            roomData.mode = snapshot.val().mode; // lấy mode từ phòng
             showToast("Vào phòng thành công!");
             document.getElementById('display-room-code').innerText = code;
             showSection('lobby');
@@ -603,11 +634,13 @@ function createRoom() {
     const playerCount = document.getElementById("player-count").value;
     const mode = document.getElementById("game-mode").value;
 
-    const roomData = {
+    roomData = {
+
         host: playerName,
         mode: mode,
         maxPlayers: parseInt(playerCount),
         started: false,
+        turn: playerName,  // ✅ THÊM DÒNG NÀY
         players: {
             [playerName]: {
                 name: playerName,
@@ -619,6 +652,7 @@ function createRoom() {
     };
 
     firebase.database().ref("rooms/" + code).set(roomData);
+    roomData.mode = mode; // cập nhật local mode
 
     currentRoom = code;
     currentRoomRef = firebase.database().ref("rooms/" + code);
@@ -674,3 +708,41 @@ function listenLobby() {
         }
     });
 }
+const chatArea = document.getElementById("game-messages");
+if (chatArea) {
+    chatArea.scrollTop = chatArea.scrollHeight;
+}
+function resetRoom() {
+
+    // stop timer
+    if (turnTimer) {
+        clearInterval(turnTimer);
+        turnTimer = null;
+    }
+
+    // remove firebase listeners
+    if (currentRoomRef) {
+        currentRoomRef.off();
+        currentRoomRef.child("players").off();
+        currentRoomRef.child("messages").off();
+    }
+
+    currentRoom = null;
+    currentRoomRef = null;
+
+    roomData = { code: "", players: [], mode: "bot" };
+    gameState = { lastWord: "", turn: "user", history: [] };
+
+    const chatBox = document.getElementById("game-messages");
+    if (chatBox) chatBox.innerHTML = "";
+
+    document.getElementById("current-target").innerText = "---";
+    document.getElementById("turn-info").innerText = "Đang chờ...";
+
+}
+
+function goHome() {
+    resetRoom();
+    showSection("home");
+}
+

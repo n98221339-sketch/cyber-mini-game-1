@@ -217,12 +217,20 @@
                         </div>
                     </div>
 
-                <div class="game-container" style="flex:1;height:100%;padding:0;">
+                <div class="game-container" style="flex:1;height:100%;padding:0;position:relative;">
                     <div class="game-header">
                         <div class="turn-indicator" id="turn-info">Đang chờ...</div>
                         <div class="last-word-box">Từ hiện tại: <span id="current-target">---</span></div>
                     </div>
                     <div class="chat-area" id="game-messages"></div>
+
+                    <!-- BIG TIMER: tuyệt đối căn giữa vùng chat -->
+                    <div id="big-timer" class="big-timer hidden">
+                        <div class="big-timer-label">THỜI GIAN CÒN</div>
+                        <div class="big-timer-num" id="big-timer-num">60</div>
+                        <div class="big-timer-bar-wrap"><div class="big-timer-bar" id="big-timer-bar"></div></div>
+                    </div>
+
                     <div class="game-controls">
 
                         <!-- 1. Từ hiện tại -->

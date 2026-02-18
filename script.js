@@ -57,42 +57,80 @@ async function sendGameAction(type) {
         if (!msg) return;
         addMessage(currentUser.name, msg);
         chatIn.value = "";
-    } else if (type === 'word') {
+    }
+    else if (type === 'word') {
 
         const word = wordIn.value.trim().toLowerCase();
         if (!word) return;
 
-        const wordCount = word.split(/\s+/).length;
+        database.ref("rooms/" + roomData.code).once("value").then(snap => {
 
-        if (wordCount > 2) {
-            showToast("❌ Chỉ được nhập tối đa 2 từ!");
-            return;
-        }
+            const room = snap.val();
+            if (!room) return;
 
-        if (gameState.lastWord) {
-            const lastPart = gameState.lastWord.split(' ').pop();
-            const firstPart = word.split(' ')[0];
-
-            if (lastPart !== firstPart) {
-                showToast(`❌ Phải bắt đầu bằng "${lastPart.toUpperCase()}"`);
+            // ❌ Nếu chưa tới lượt
+            if (room.turn !== currentUser.name) {
+                showToast("❌ Chưa tới lượt bạn!");
                 return;
             }
-        }
 
-        // HIỂN THỊ LÊN CHAT NGAY
-        addMessage(currentUser.name, word.toUpperCase(), "word");
+            const wordCount = word.split(/\s+/).length;
+            if (wordCount > 2) {
+                showToast("❌ Chỉ được nhập tối đa 2 từ!");
+                return;
+            }
 
-        gameState.lastWord = word;
-        document.getElementById('current-target').innerText = word.toUpperCase();
+            if (room.lastWord) {
+                const lastPart = room.lastWord.split(' ').pop();
+                const firstPart = word.split(' ')[0];
 
-        wordIn.value = "";
+                if (lastPart !== firstPart) {
+                    showToast(`❌ Phải bắt đầu bằng "${lastPart.toUpperCase()}"`);
+                    return;
+                }
+            }
 
-        if (roomData.mode === 'bot') {
-            document.getElementById('turn-info').innerText = "Bot đang nghĩ...";
-            const botWord = await getBotResponse(word);
-            processBotTurn(botWord);
-        }
+            // ✅ Push message
+            database.ref("rooms/" + roomData.code + "/messages").push({
+                sender: currentUser.name,
+                text: word.toUpperCase(),
+                type: "word",
+                time: Date.now()
+            });
+
+            // ✅ Tính lượt tiếp theo
+            const players = Object.keys(room.players);
+            const currentIndex = players.indexOf(room.turn);
+            let nextIndex = (currentIndex + 1) % players.length;
+            let nextPlayer = players[nextIndex];
+
+            // ✅ Update room
+            database.ref("rooms/" + roomData.code).transaction(room => {
+
+                if (!room) return room;
+
+                if (room.turn !== currentUser.name) {
+                    return; // huỷ nếu không đúng lượt
+                }
+
+                room.lastWord = word;
+
+                const players = Object.keys(room.players);
+                const currentIndex = players.indexOf(room.turn);
+                let nextIndex = (currentIndex + 1) % players.length;
+                room.turn = players[nextIndex];
+
+                return room;
+
+            });
+
+
+            wordIn.value = "";
+
+        });
+
     }
+
 }
 
 
@@ -416,42 +454,48 @@ function saveAllData() {
 }
 
 function listenGameRealtime() {
-    // LISTEN CHAT REALTIME
-    firebase.database()
-        .ref("rooms/" + roomData.code + "/messages")
+
+    // ❌ XÓA listener cũ trước
+    database.ref("rooms/" + roomData.code + "/messages").off();
+    database.ref("rooms/" + roomData.code).off();
+
+    // CLEAR CHAT BOX để không trùng tin
+    const box = document.getElementById("game-messages");
+
+
+    // LISTEN MESSAGE
+    database.ref("rooms/" + roomData.code + "/messages")
         .on("child_added", snapshot => {
 
             const msg = snapshot.val();
-            addMessage(msg.sender, msg.text);
+            addMessage(msg.sender, msg.text, msg.type);
 
         });
-    if (roomData.mode === "bot") {
-        // Cho phép bot hoạt động
-    } else {
-        return; // Multiplayer thì không chạy bot
-    }
 
+    // LISTEN ROOM STATE
+    database.ref("rooms/" + roomData.code)
+        .on("value", snapshot => {
 
+            const data = snapshot.val();
+            if (!data) return;
 
-    database.ref("rooms/" + roomData.code).on("value", snapshot => {
-        const data = snapshot.val();
-        if (!data) return;
+            gameState.lastWord = data.lastWord || "";
 
-        gameState.lastWord = data.lastWord || "";
+            document.getElementById("current-target").innerText =
+                data.lastWord || "MỜI RA TỪ";
 
-        document.getElementById("current-target").innerText =
-            data.lastWord || "MỜI RA TỪ";
+            document.getElementById("turn-info").innerText =
+                "Lượt của: " + data.turn;
 
-        document.getElementById("turn-info").innerText =
-            "Lượt của: " + data.turn;
+            if (data.turn === currentUser.name) {
+                startTurnTimer();
+            } else {
+                stopTurnTimer();
+            }
 
-        if (data.turn === currentUser.name) {
-            startTurnTimer();
-        } else {
-            stopTurnTimer();
-        }
-    });
+        });
 }
+
 function startTurnTimer() {
 
     turnTimeLeft = 60;
@@ -578,9 +622,12 @@ function quickJoinRoom(code) {
 
             database.ref("rooms/" + code + "/players/" + currentUser.name)
                 .set({
+                    name: currentUser.name,
                     avatar: currentUser.avatar,
                     gold: currentUser.gold
                 });
+
+
 
             roomData.code = code;
             roomData.mode = snapshot.val().mode; // lấy mode từ phòng
@@ -623,9 +670,6 @@ function showNotify(text) {
     setTimeout(() => {
         box.style.display = "none";
     }, 2000);
-}
-function generateRoomCode() {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
 function createRoom() {

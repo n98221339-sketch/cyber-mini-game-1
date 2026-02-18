@@ -426,12 +426,33 @@ function saveAllData() {
 function startTurnTimer() {
     turnTimeLeft = 60;
     stopTurnTimer();
+
+    // Hiện big timer
+    const bigTimer = document.getElementById("big-timer");
+    const bigNum   = document.getElementById("big-timer-num");
+    const bigBar   = document.getElementById("big-timer-bar");
+    if (bigTimer) bigTimer.classList.remove("hidden");
+    if (bigNum)   { bigNum.innerText = 60; bigNum.classList.remove("urgent"); }
+    if (bigBar)   { bigBar.style.width = "100%"; bigBar.style.background = "linear-gradient(90deg, #a855f7, #0ea5e9)"; }
+
     turnTimer = setInterval(() => {
         turnTimeLeft--;
-        const el = document.getElementById("turn-info");
-        if (el) el.innerText = "🟢 Lượt của bạn - Còn " + turnTimeLeft + "s";
+
+        // Cập nhật big timer số
+        if (bigNum) {
+            bigNum.innerText = turnTimeLeft;
+            if (turnTimeLeft <= 10) bigNum.classList.add("urgent");
+        }
+
+        // Cập nhật thanh bar
+        if (bigBar) {
+            bigBar.style.width = (turnTimeLeft / 60 * 100) + "%";
+            if (turnTimeLeft <= 10) bigBar.style.background = "#ef4444";
+        }
+
         if (turnTimeLeft <= 0) {
             clearInterval(turnTimer);
+            hideBigTimer();
             skipTurn();
         }
     }, 1000);
@@ -442,6 +463,12 @@ function stopTurnTimer() {
         clearInterval(turnTimer);
         turnTimer = null;
     }
+    hideBigTimer();
+}
+
+function hideBigTimer() {
+    const bigTimer = document.getElementById("big-timer");
+    if (bigTimer) bigTimer.classList.add("hidden");
 }
 
 function skipTurn() {
@@ -793,6 +820,7 @@ function sendWord() {
             }
 
             input.value = "";
+            stopTurnTimer(); // Ẩn timer ngay khi gửi từ
 
             const players = room.players ? Object.keys(room.players) : [];
             const currentIndex = players.indexOf(currentUser.name);

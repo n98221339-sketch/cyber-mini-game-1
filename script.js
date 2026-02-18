@@ -1,6 +1,79 @@
 let currentRoom = null;
 let currentRoomRef = null;
 
+// ===== SETUP PAGE FUNCTIONS (khai báo sớm để HTML gọi được) =====
+let _allPlayers = {};
+let _currentTurnForPanel = '';
+
+function selectMode(mode, btn) {
+    document.getElementById('game-mode').value = mode;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+function changeCount(delta) {
+    const input = document.getElementById('player-count');
+    let val = parseInt(input.value || 2) + delta;
+    if (val < 2) val = 2;
+    if (val > 200) val = 200;
+    input.value = val;
+}
+
+function filterPanel(query) {
+    const panel = document.getElementById('online-panel');
+    if (!panel) return;
+
+    const q = (query || '').toLowerCase().trim();
+    panel.innerHTML = '';
+
+    if (!_allPlayers || Object.keys(_allPlayers).length === 0) {
+        panel.innerHTML = '<div style="color:#71717a;font-size:0.75rem;text-align:center;padding:20px 0;">Chưa có người chơi</div>';
+        return;
+    }
+
+    let found = false;
+    for (let key in _allPlayers) {
+        if (q && !key.toLowerCase().includes(q) && !_allPlayers[key].name.toLowerCase().includes(q)) continue;
+        found = true;
+
+        const p = _allPlayers[key];
+        const isActive = key === _currentTurnForPanel;
+        const isMe = currentUser && key === currentUser.name;
+
+        panel.innerHTML += \`
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;
+                        padding:8px 10px;border-radius:12px;
+                        background:\${isActive ? 'rgba(168,85,247,0.18)' : 'rgba(255,255,255,0.04)'};
+                        border:1px solid \${isActive ? 'rgba(168,85,247,0.6)' : 'rgba(255,255,255,0.07)'};
+                        transition:all 0.3s;">
+                <div style="position:relative;flex-shrink:0;">
+                    <img src="\${p.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + p.name}"
+                         style="width:38px;height:38px;border-radius:50%;object-fit:cover;
+                                border:2px solid \${isActive ? '#a855f7' : '#444'};">
+                    <div style="width:10px;height:10px;background:#22c55e;border-radius:50%;
+                                border:2px solid #09090b;position:absolute;bottom:1px;right:1px;
+                                box-shadow:0 0 5px #22c55e;"></div>
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:0.82rem;font-weight:bold;
+                                color:\${isMe ? '#a855f7' : '#fff'};
+                                white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        \${p.name}\${isMe ? ' <span style="font-size:0.65rem;opacity:0.7;">(bạn)</span>' : ''}
+                    </div>
+                    <div style="font-size:0.7rem;margin-top:2px;
+                                color:\${isActive ? '#a855f7' : '#22c55e'};">
+                        \${isActive ? '🎮 Đang nhập...' : '● Online'}
+                    </div>
+                </div>
+            </div>
+        \`;
+    }
+
+    if (!found) {
+        panel.innerHTML = '<div style="color:#71717a;font-size:0.75rem;text-align:center;padding:20px 0;">Không tìm thấy</div>';
+    }
+}
+
 // 1. Firebase Config
 const firebaseConfig = {
     apiKey: "AIzaSyDKBP6jaGk8g5I8-9FcRi3KQCjkDRGeGzk",
@@ -963,67 +1036,4 @@ function updateOnlinePanel(players, currentTurn) {
     const searchInput = document.getElementById('panel-search');
     const q = searchInput ? searchInput.value : '';
     filterPanel(q);
-}
-
-// ===== SETUP PAGE FUNCTIONS =====
-function selectMode(mode, btn) {
-    document.getElementById('game-mode').value = mode;
-    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-}
-
-function changeCount(delta) {
-    const input = document.getElementById('player-count');
-    let val = parseInt(input.value) + delta;
-    if (val < 2) val = 2;
-    if (val > 200) val = 200;
-    input.value = val;
-}
-
-// ===== FILTER PANEL SEARCH =====
-let _allPlayers = {};
-let _currentTurnForPanel = '';
-
-function filterPanel(query) {
-    const panel = document.getElementById('online-panel');
-    if (!panel || !_allPlayers) return;
-
-    const q = query.toLowerCase().trim();
-    panel.innerHTML = '';
-
-    for (let key in _allPlayers) {
-        if (q && !key.toLowerCase().includes(q)) continue;
-
-        const p = _allPlayers[key];
-        const isActive = key === _currentTurnForPanel;
-        const isMe = key === currentUser.name;
-
-        panel.innerHTML += `
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;
-                        padding:8px 10px;border-radius:12px;
-                        background:${isActive ? 'rgba(168,85,247,0.18)' : 'rgba(255,255,255,0.04)'};
-                        border:1px solid ${isActive ? 'rgba(168,85,247,0.6)' : 'rgba(255,255,255,0.07)'};
-                        transition:all 0.3s;">
-                <div style="position:relative;flex-shrink:0;">
-                    <img src="${p.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + p.name}"
-                         style="width:38px;height:38px;border-radius:50%;object-fit:cover;
-                                border:2px solid ${isActive ? '#a855f7' : '#444'};">
-                    <div style="width:10px;height:10px;background:#22c55e;border-radius:50%;
-                                border:2px solid #09090b;position:absolute;bottom:1px;right:1px;
-                                box-shadow:0 0 5px #22c55e;"></div>
-                </div>
-                <div style="flex:1;min-width:0;">
-                    <div style="font-size:0.82rem;font-weight:bold;
-                                color:${isMe ? '#a855f7' : '#fff'};
-                                white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                        ${p.name}${isMe ? ' <span style="font-size:0.65rem;opacity:0.7;">(bạn)</span>' : ''}
-                    </div>
-                    <div style="font-size:0.7rem;margin-top:2px;
-                                color:${isActive ? '#a855f7' : '#22c55e'};">
-                        ${isActive ? '🎮 Đang nhập...' : '● Online'}
-                    </div>
-                </div>
-            </div>
-        `;
-    }
 }

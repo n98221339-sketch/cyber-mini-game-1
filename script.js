@@ -545,31 +545,6 @@ function skipTurn() {
         });
 }
 
-function nextTurn() {
-
-    database.ref("rooms/" + roomData.code + "/players")
-        .once("value").then(snapshot => {
-
-            const players = Object.keys(snapshot.val());
-
-            database.ref("rooms/" + roomData.code)
-                .once("value").then(snap => {
-
-                    const data = snap.val();
-                    const currentTurn = data.turn;
-
-                    const currentIndex = players.indexOf(currentTurn);
-                    let nextIndex = (currentIndex + 1) % players.length;
-                    let nextPlayer = players[nextIndex];
-
-                    database.ref("rooms/" + roomData.code).update({
-                        turn: nextPlayer
-                    });
-
-                });
-
-        });
-}
 
 function listenRoomList() {
 

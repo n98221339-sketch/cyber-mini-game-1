@@ -301,8 +301,21 @@ function saveProfile() {
     if (fileInput) {
         const reader = new FileReader();
         reader.onload = function (e) {
-            currentUser.avatar = e.target.result;
-            finishSaving();
+            // Resize ảnh xuống max 150x150 để tránh lỗi localStorage quota
+            const img = new Image();
+            img.onload = function () {
+                const canvas = document.createElement('canvas');
+                const MAX = 150;
+                let w = img.width, h = img.height;
+                if (w > h) { if (w > MAX) { h = h * MAX / w; w = MAX; } }
+                else       { if (h > MAX) { w = w * MAX / h; h = MAX; } }
+                canvas.width = w;
+                canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                currentUser.avatar = canvas.toDataURL('image/jpeg', 0.7);
+                finishSaving();
+            };
+            img.src = e.target.result;
         };
         reader.readAsDataURL(fileInput);
     } else {
@@ -313,11 +326,28 @@ function saveProfile() {
 
 function finishSaving() {
     users[currentUser.name].avatar = currentUser.avatar;
+    users[currentUser.name].name   = currentUser.name;
     saveAllData();
     renderUI();
-    // FIX: Đã xóa updateLobbyUI() gọi thiếu tham số
+
+    // Cập nhật avatar sidebar ngay lập tức
+    const sideAvatar = document.getElementById('side-avatar');
+    if (sideAvatar) sideAvatar.src = currentUser.avatar;
+
+    // Cập nhật preview trong modal
+    const previewImg = document.getElementById('preview-img');
+    if (previewImg) previewImg.src = currentUser.avatar;
+
+    // Nếu đang trong phòng thì cập nhật Firebase player
+    if (roomData.code && currentUser.name) {
+        database.ref("rooms/" + roomData.code + "/players/" + currentUser.name).update({
+            avatar: currentUser.avatar,
+            name: currentUser.name
+        });
+    }
+
     closeProfile();
-    showToast("Đã cập nhật hồ sơ!");
+    showToast("✅ Đã cập nhật hồ sơ!");
 }
 
 function closeProfile() {
@@ -826,6 +856,7 @@ function listenGameRealtime() {
     });
 
     // Theo dõi từ hiện tại và lượt chơi
+    let _lastTurn = null; // track turn thay đổi để không reset timer khi chat
     roomRef.on("value", snap => {
         const data = snap.val();
         if (!data) return;
@@ -839,8 +870,9 @@ function listenGameRealtime() {
 
         if (data.turn) {
             const isMyTurn = data.turn === currentUser.name;
+            const turnChanged = data.turn !== _lastTurn; // chỉ true khi lượt thực sự đổi
+            if (turnChanged) _lastTurn = data.turn;
 
-            // Tính tiếng cần bắt đầu
             const hint = data.currentWord
                 ? data.currentWord.trim().split(/\s+/).pop().toUpperCase()
                 : "";
@@ -857,7 +889,6 @@ function listenGameRealtime() {
                 }
             }
 
-            // Enable/disable ô nhập từ theo lượt
             if (wordInput) {
                 wordInput.disabled = !isMyTurn;
                 wordInput.placeholder = isMyTurn
@@ -871,17 +902,18 @@ function listenGameRealtime() {
                 wordBtn.style.cursor = isMyTurn ? "pointer" : "not-allowed";
             }
 
-            // Reset + start timer mỗi khi turn thay đổi
-            if (isMyTurn) {
-                stopTurnTimer();
-                startTurnTimer();
-                if (wordInput) wordInput.focus();
-            } else {
-                stopTurnTimer();
+            // Chỉ reset timer khi TURN THAY ĐỔI, không reset khi chat
+            if (turnChanged) {
+                if (isMyTurn) {
+                    stopTurnTimer();
+                    startTurnTimer();
+                    if (wordInput) wordInput.focus();
+                } else {
+                    stopTurnTimer();
+                }
             }
         }
 
-        // Cập nhật panel online players
         if (data.players) updateOnlinePanel(data.players, data.turn);
     });
 }

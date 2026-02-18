@@ -827,17 +827,24 @@ function clearData() {
     }
 }
 
+// Mở modal xác nhận đăng xuất
 function logout() {
-    if (!confirm("Bạn có chắc muốn đăng xuất không?")) return;
+    document.getElementById('logout-modal').classList.remove('hidden');
+}
 
+function closeLogoutModal() {
+    document.getElementById('logout-modal').classList.add('hidden');
+}
+
+// Thực hiện đăng xuất sau khi xác nhận
+function confirmLogout() {
+    closeLogoutModal();
     resetRoom();
     currentUser = null;
     localStorage.removeItem('natsumi_current');
 
     document.getElementById('app-interface').classList.add('hidden');
     document.getElementById('auth-screen').classList.remove('hidden');
-
-    // Xóa input
     document.getElementById('user-input').value = "";
     document.getElementById('pass-input').value = "";
 

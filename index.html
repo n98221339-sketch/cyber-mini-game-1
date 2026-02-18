@@ -46,6 +46,9 @@
                 <div class="nav-btn" onclick="showSection('game-list')"><i class="fas fa-gamepad"></i></div>
                 <div id="admin-shield" class="nav-btn hidden" onclick="showSection('admin')"><i
                         class="fas fa-shield-halved"></i></div>
+                <div class="nav-btn logout-btn" onclick="logout()" title="Đăng xuất">
+                    <i class="fas fa-right-from-bracket"></i>
+                </div>
             </div>
             <div class="side-user">
                 <div class="gold-box" title="Robux/Gold">
@@ -54,9 +57,6 @@
                 <div class="avatar-wrapper" onclick="openProfile()">
                     <img id="side-avatar" src="" class="circle-avatar">
                     <div class="online-dot"></div>
-                </div>
-                <div class="nav-btn logout-btn" onclick="logout()" title="Đăng xuất">
-                    <i class="fas fa-right-from-bracket"></i>
                 </div>
             </div>
         </aside>
@@ -221,6 +221,19 @@
             <div class="m-btns">
                 <button onclick="closeProfile()" class="btn-sub">HỦY</button>
                 <button onclick="saveProfile()" class="btn-main">LƯU THAY ĐỔI</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal xác nhận đăng xuất -->
+    <div id="logout-modal" class="modal hidden">
+        <div class="modal-content glass" style="width:360px;text-align:center;">
+            <div style="font-size:3rem;margin-bottom:15px;">👋</div>
+            <h3 style="margin-bottom:10px;">Đăng xuất?</h3>
+            <p style="color:#a1a1aa;margin-bottom:25px;">Bạn có chắc muốn đăng xuất khỏi tài khoản không?</p>
+            <div style="display:flex;gap:12px;">
+                <button onclick="closeLogoutModal()" class="btn-sub" style="flex:1;">Huỷ</button>
+                <button onclick="confirmLogout()" class="btn-main" style="flex:1;background:#ef4444;">Đăng xuất</button>
             </div>
         </div>
     </div>

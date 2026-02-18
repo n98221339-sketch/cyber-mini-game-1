@@ -481,9 +481,15 @@ body {
 }
 /* LOGOUT BUTTON */
 .logout-btn {
-    color: #ef4444 !important;
-    margin-top: 10px;
-    font-size: 20px !important;
+    color          : #ef4444 !important;
+    margin-top     : 10px;
+    font-size      : 20px !important;
+    display        : flex !important;
+    justify-content: center !important;
+    align-items    : center !important;
+    width          : 100% !important;
+    margin-left    : 0 !important;
+    margin-right   : 0 !important;
 }
 
 .logout-btn:hover {

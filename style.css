@@ -147,18 +147,23 @@ body {
 }
 
 .avatar-wrapper {
-    position: relative;
-    cursor  : pointer;
-    display : inline-block;
-    width   : fit-content;
+    position       : relative;
+    cursor         : pointer;
+    display        : flex;
+    justify-content: center;
+    align-items    : center;
+    width          : 54px;
+    margin         : 0 auto;
 }
 
 .circle-avatar {
-    width        : 50px;
-    height       : 50px;
+    width        : 46px;
+    height       : 46px;
     border-radius: 50%;
     object-fit   : cover;
     border       : 2px solid var(--purple);
+    display      : block;
+    flex-shrink  : 0;
 }
 
 .circle-avatar.big {
@@ -677,4 +682,69 @@ body {
 .profile-preview img {
     display : block;
     margin  : 0 auto;
+}
+
+
+/* ===== BIG TIMER ===== */
+.big-timer {
+    display        : flex;
+    flex-direction : column;
+    align-items    : center;
+    justify-content: center;
+    position       : absolute;
+    left           : 50%;
+    top            : 50%;
+    transform      : translate(-50%, -50%);
+    z-index        : 10;
+    pointer-events : none;
+    text-align     : center;
+}
+
+.big-timer.hidden { display: none !important; }
+
+.big-timer-label {
+    font-size     : 0.65rem;
+    letter-spacing: 4px;
+    color         : #71717a;
+    font-weight   : bold;
+    margin-bottom : 4px;
+    text-transform: uppercase;
+}
+
+.big-timer-num {
+    font-size  : 5rem;
+    font-weight: 900;
+    line-height: 1;
+    color      : rgba(255,255,255,0.15);
+    font-family: 'Segoe UI', monospace;
+    transition : color 0.3s;
+    text-shadow: 0 0 40px rgba(168,85,247,0.3);
+}
+
+.big-timer-num.urgent {
+    color      : rgba(239,68,68,0.4);
+    animation  : blink-urgent 0.5s infinite;
+    text-shadow: 0 0 40px rgba(239,68,68,0.5);
+}
+
+@keyframes blink-urgent {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.5; }
+}
+
+.big-timer-bar-wrap {
+    width        : 160px;
+    height       : 3px;
+    background   : rgba(255,255,255,0.08);
+    border-radius: 4px;
+    margin-top   : 12px;
+    overflow     : hidden;
+}
+
+.big-timer-bar {
+    height       : 100%;
+    width        : 100%;
+    background   : linear-gradient(90deg, #a855f7, #0ea5e9);
+    border-radius: 4px;
+    transition   : width 1s linear, background 0.5s;
 }

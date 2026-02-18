@@ -952,3 +952,45 @@ function confirmLogout() {
 
     showToast("👋 Đã đăng xuất!");
 }
+
+// ===== ONLINE PLAYERS PANEL =====
+function updateOnlinePanel(players, currentTurn) {
+    const panel = document.getElementById("online-panel");
+    if (!panel) return;
+
+    panel.innerHTML = '<div style="font-size:0.75rem;color:#a1a1aa;margin-bottom:12px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;">👥 Người chơi</div>';
+
+    for (let key in players) {
+        const p = players[key];
+        const isActive = key === currentTurn;
+        const isMe = key === currentUser.name;
+
+        panel.innerHTML += `
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;
+                        padding:8px 10px;border-radius:12px;
+                        background:${isActive ? 'rgba(168,85,247,0.18)' : 'rgba(255,255,255,0.04)'};
+                        border:1px solid ${isActive ? 'rgba(168,85,247,0.6)' : 'rgba(255,255,255,0.07)'};
+                        transition:all 0.3s;">
+                <div style="position:relative;flex-shrink:0;">
+                    <img src="${p.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + p.name}"
+                         style="width:40px;height:40px;border-radius:50%;object-fit:cover;
+                                border:2px solid ${isActive ? '#a855f7' : '#444'};">
+                    <div style="width:10px;height:10px;background:#22c55e;border-radius:50%;
+                                border:2px solid #09090b;position:absolute;bottom:1px;right:1px;
+                                box-shadow:0 0 5px #22c55e;"></div>
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:0.82rem;font-weight:bold;
+                                color:${isMe ? '#a855f7' : '#fff'};
+                                white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        ${p.name}${isMe ? ' <span style="font-size:0.65rem;opacity:0.7;">(bạn)</span>' : ''}
+                    </div>
+                    <div style="font-size:0.7rem;margin-top:2px;
+                                color:${isActive ? '#a855f7' : '#22c55e'};">
+                        ${isActive ? '🎮 Đang nhập...' : '● Online'}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+}

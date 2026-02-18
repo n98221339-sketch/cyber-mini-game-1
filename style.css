@@ -286,12 +286,10 @@ body {
 }
 
 .game-container {
-    height        : calc(100vh - 80px);
     display       : flex;
     flex-direction: column;
-    max-width     : 900px;
-    margin        : 0 auto;
-    padding       : 20px;
+    height        : 100%;
+    padding       : 0;
 }
 
 .chat-area {

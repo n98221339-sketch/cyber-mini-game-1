@@ -160,18 +160,20 @@
                             <input type="text" id="chat-input" placeholder="Nhắn tin..."
                                 onkeydown="handleGameInput(event, 'chat')">
 
-                            <button onclick="sendGameAction('chat')">
+                            <button onclick="sendChat()">
                                 <i class="fas fa-paper-plane"></i>
                             </button>
+                        </div>
+                        <div class="current-word-box">
+                            Từ hiện tại: <span id="current-word">---</span>
                         </div>
 
                         <div class="input-wrapper word-box">
                             <input type="text" id="word-input" placeholder="Nhập từ nối..."
                                 onkeydown="handleGameInput(event, 'word')">
 
-                            <button onclick="sendGameAction('word')">
-                                GỬI TỪ
-                            </button>
+                            <button id="word-send-btn" onclick="sendWord()" class="...">GỬI TỪ</button>
+
                         </div>
 
                     </div>

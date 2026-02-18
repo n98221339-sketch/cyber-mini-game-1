@@ -95,39 +95,74 @@
             </section>
 
             <section id="sec-noitu-setup" class="page hidden">
-
-
-                <div class="room-ui glass">
-                    <h2><i class="fas fa-plus-circle"></i> Thiết lập trận đấu</h2>
-                    <div class="setup-grid">
-                        <div class="setup-item">
-                            <label>Số lượng người chơi</label>
-                            <select id="player-count">
-                                <option value="2">2 Người (1vs1)</option>
-                                <option value="4">4 Người</option>
-                                <option value="10">10 Người</option>
-                            </select>
-                        </div>
-                        <div class="setup-item">
-                            <label>Chế độ đấu</label>
-                            <select id="game-mode">
-                                <option value="bot">Chế độ Test (thử từ)</option>
-                                <option value="player">Đấu với người chơi khác</option>
-                            </select>
-                        </div>
+                <div class="setup-wrapper">
+                    <div class="setup-header">
+                        <i class="fas fa-gamepad"></i>
+                        <h2>Thiết lập trận đấu</h2>
+                        <p>Tạo phòng mới hoặc tham gia phòng có sẵn</p>
                     </div>
-                    <div class="room-btns">
-                        <button class="btn-create" onclick="createRoom()">TẠO PHÒNG MỚI</button>
-                        <div class="divider">HOẶC NHẬP MÃ</div>
-                        <div class="otp-row" id="otp-container">
-                            <input type="text" maxlength="1" class="otp-input">
-                            <input type="text" maxlength="1" class="otp-input">
-                            <input type="text" maxlength="1" class="otp-input">
-                            <input type="text" maxlength="1" class="otp-input">
-                            <input type="text" maxlength="1" class="otp-input">
-                            <input type="text" maxlength="1" class="otp-input">
+
+                    <div class="setup-body">
+                        <!-- CỘT TRÁI: Tạo phòng -->
+                        <div class="setup-card glass">
+                            <div class="setup-card-title">
+                                <i class="fas fa-plus-circle" style="color:#a855f7"></i>
+                                Tạo phòng mới
+                            </div>
+
+                            <div class="setup-field">
+                                <label>Chế độ chơi</label>
+                                <div class="mode-btns">
+                                    <button class="mode-btn active" id="mode-test" onclick="selectMode('bot', this)">
+                                        <i class="fas fa-flask"></i> Test từ
+                                    </button>
+                                    <button class="mode-btn" id="mode-player" onclick="selectMode('player', this)">
+                                        <i class="fas fa-users"></i> Nhiều người
+                                    </button>
+                                </div>
+                                <input type="hidden" id="game-mode" value="bot">
+                            </div>
+
+                            <div class="setup-field">
+                                <label>Số người chơi tối đa</label>
+                                <div class="player-count-row">
+                                    <button class="count-btn" onclick="changeCount(-1)">−</button>
+                                    <input type="number" id="player-count" value="2" min="2" max="200"
+                                           style="width:70px;text-align:center;background:#18181b;border:1px solid rgba(255,255,255,0.1);
+                                                  color:white;border-radius:10px;padding:8px;font-size:1.1rem;font-weight:bold;">
+                                    <button class="count-btn" onclick="changeCount(1)">+</button>
+                                    <span style="color:#a1a1aa;font-size:0.8rem;margin-left:8px;">tối đa 200</span>
+                                </div>
+                            </div>
+
+                            <button class="btn-create-new" onclick="createRoom()">
+                                <i class="fas fa-rocket"></i> TẠO PHÒNG MỚI
+                            </button>
                         </div>
-                        <button class="btn-join" onclick="joinRoom()">VÀO PHÒNG</button>
+
+                        <!-- CỘT PHẢI: Vào phòng -->
+                        <div class="setup-card glass">
+                            <div class="setup-card-title">
+                                <i class="fas fa-door-open" style="color:#0ea5e9"></i>
+                                Vào phòng có sẵn
+                            </div>
+
+                            <div class="setup-field">
+                                <label>Nhập mã phòng (6 ký tự)</label>
+                                <div class="otp-row" id="otp-container">
+                                    <input type="text" maxlength="1" class="otp-input">
+                                    <input type="text" maxlength="1" class="otp-input">
+                                    <input type="text" maxlength="1" class="otp-input">
+                                    <input type="text" maxlength="1" class="otp-input">
+                                    <input type="text" maxlength="1" class="otp-input">
+                                    <input type="text" maxlength="1" class="otp-input">
+                                </div>
+                            </div>
+
+                            <button class="btn-join-new" onclick="joinRoom()">
+                                <i class="fas fa-sign-in-alt"></i> VÀO PHÒNG
+                            </button>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -154,12 +189,31 @@
                 <div style="display:flex;gap:15px;height:calc(100vh - 80px);padding:20px;">
 
                     <!-- Panel online bên phải -->
-                    <div id="online-panel"
-                         style="width:180px;flex-shrink:0;
-                                background:rgba(255,255,255,0.03);
-                                border:1px solid rgba(255,255,255,0.08);
-                                border-radius:16px;padding:15px;
-                                overflow-y:auto;order:2;">
+                    <div style="width:200px;flex-shrink:0;order:2;display:flex;flex-direction:column;
+                                background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
+                                border-radius:16px;overflow:hidden;">
+
+                        <!-- Header + search cố định -->
+                        <div style="padding:12px;border-bottom:1px solid rgba(255,255,255,0.07);flex-shrink:0;">
+                            <div style="font-size:0.72rem;color:#a1a1aa;font-weight:bold;letter-spacing:1px;margin-bottom:8px;">
+                                👥 NGƯỜI CHƠI
+                            </div>
+                            <div style="display:flex;align-items:center;gap:6px;
+                                        background:rgba(255,255,255,0.06);
+                                        border:1px solid rgba(255,255,255,0.1);
+                                        border-radius:8px;padding:5px 10px;">
+                                <i class="fas fa-search" style="color:#71717a;font-size:0.7rem;"></i>
+                                <input type="text" id="panel-search"
+                                       placeholder="Tìm người chơi..."
+                                       oninput="filterPanel(this.value)"
+                                       style="background:transparent;border:none;color:white;
+                                              font-size:0.75rem;outline:none;width:100%;">
+                            </div>
+                        </div>
+
+                        <!-- Danh sách scroll được -->
+                        <div id="online-panel" style="flex:1;overflow-y:auto;padding:10px;">
+                        </div>
                     </div>
 
                 <div class="game-container" style="flex:1;height:100%;padding:0;">

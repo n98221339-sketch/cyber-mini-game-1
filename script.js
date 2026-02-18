@@ -955,14 +955,47 @@ function confirmLogout() {
 
 // ===== ONLINE PLAYERS PANEL =====
 function updateOnlinePanel(players, currentTurn) {
-    const panel = document.getElementById("online-panel");
-    if (!panel) return;
+    // Lưu cache để filterPanel dùng lại
+    _allPlayers = players;
+    _currentTurnForPanel = currentTurn;
 
-    panel.innerHTML = '<div style="font-size:0.75rem;color:#a1a1aa;margin-bottom:12px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;">👥 Người chơi</div>';
+    // Lấy query search hiện tại
+    const searchInput = document.getElementById('panel-search');
+    const q = searchInput ? searchInput.value : '';
+    filterPanel(q);
+}
 
-    for (let key in players) {
-        const p = players[key];
-        const isActive = key === currentTurn;
+// ===== SETUP PAGE FUNCTIONS =====
+function selectMode(mode, btn) {
+    document.getElementById('game-mode').value = mode;
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+function changeCount(delta) {
+    const input = document.getElementById('player-count');
+    let val = parseInt(input.value) + delta;
+    if (val < 2) val = 2;
+    if (val > 200) val = 200;
+    input.value = val;
+}
+
+// ===== FILTER PANEL SEARCH =====
+let _allPlayers = {};
+let _currentTurnForPanel = '';
+
+function filterPanel(query) {
+    const panel = document.getElementById('online-panel');
+    if (!panel || !_allPlayers) return;
+
+    const q = query.toLowerCase().trim();
+    panel.innerHTML = '';
+
+    for (let key in _allPlayers) {
+        if (q && !key.toLowerCase().includes(q)) continue;
+
+        const p = _allPlayers[key];
+        const isActive = key === _currentTurnForPanel;
         const isMe = key === currentUser.name;
 
         panel.innerHTML += `
@@ -973,7 +1006,7 @@ function updateOnlinePanel(players, currentTurn) {
                         transition:all 0.3s;">
                 <div style="position:relative;flex-shrink:0;">
                     <img src="${p.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + p.name}"
-                         style="width:40px;height:40px;border-radius:50%;object-fit:cover;
+                         style="width:38px;height:38px;border-radius:50%;object-fit:cover;
                                 border:2px solid ${isActive ? '#a855f7' : '#444'};">
                     <div style="width:10px;height:10px;background:#22c55e;border-radius:50%;
                                 border:2px solid #09090b;position:absolute;bottom:1px;right:1px;

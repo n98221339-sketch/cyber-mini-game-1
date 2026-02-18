@@ -465,21 +465,29 @@ function skipTurn() {
         if (allSkipped) {
             // Tất cả bỏ lượt → người viết từ cuối thắng
             const winner = room.lastWordBy || "";
+            const isTestMode = players.length <= 1; // 1 người = test, không tặng vàng
+
             if (winner) {
+                const msg = isTestMode
+                    ? `✅ ${winner} kết thúc test! (Không tặng vàng vì chỉ 1 người)`
+                    : `🏆 ${winner} THẮNG! +1000 Gold vì tất cả bỏ lượt!`;
+
                 database.ref("rooms/" + roomData.code + "/messages").push({
                     sender: "system",
-                    text: `🏆 ${winner} THẮNG! +1000 Gold vì tất cả bỏ lượt!`,
+                    text: msg,
                     type: "system",
                     timestamp: Date.now()
                 });
 
-                // Cộng 1000 gold cho winner
-                if (winner === currentUser.name) {
+                // Chỉ cộng vàng nếu có nhiều hơn 1 người
+                if (!isTestMode && winner === currentUser.name) {
                     currentUser.gold += 1000;
                     users[currentUser.name].gold = currentUser.gold;
                     saveAllData();
                     renderUI();
                     showToast("🏆 Bạn thắng! +1000 Gold!");
+                } else if (isTestMode) {
+                    showToast("✅ Kết thúc test!");
                 }
 
                 database.ref("rooms/" + roomData.code).update({
@@ -795,8 +803,12 @@ function sendWord() {
                 currentWord: newWord,
                 turn: nextPlayer,
                 lastWordBy: currentUser.name,
-                skipped: {}
+                skipped: {},
+                turnChangedAt: Date.now()  // force trigger turn change
             });
+
+            // Reset timer ngay sau khi gửi từ thành công
+            stopTurnTimer();
 
             database.ref("rooms/" + roomData.code + "/messages").push({
                 sender: currentUser.name,

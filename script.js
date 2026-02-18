@@ -342,18 +342,70 @@ function stopTurnTimer() {
 }
 
 function skipTurn() {
-    database.ref("rooms/" + roomData.code)
-        .once("value").then(roomSnap => {
-            const room = roomSnap.val();
-            const currentTurn = room.turn;
-            database.ref("rooms/" + roomData.code + "/players")
-                .once("value").then(snapshot => {
-                    const players = Object.keys(snapshot.val());
-                    const currentIndex = players.indexOf(currentTurn);
-                    let nextPlayer = players[(currentIndex + 1) % players.length];
-                    database.ref("rooms/" + roomData.code).update({ turn: nextPlayer });
+    if (!roomData.code) return;
+
+    database.ref("rooms/" + roomData.code).once("value").then(roomSnap => {
+        const room = roomSnap.val();
+        if (!room) return;
+
+        const currentTurn = room.turn;
+        const players = room.players ? Object.keys(room.players) : [];
+        if (players.length === 0) return;
+
+        // Ghi nhận người này đã bỏ lượt
+        const skipped = room.skipped || {};
+        skipped[currentTurn] = true;
+
+        // Kiểm tra tất cả mọi người đã bỏ lượt chưa
+        const allSkipped = players.every(p => skipped[p]);
+
+        if (allSkipped) {
+            // Tất cả bỏ lượt → người viết từ cuối thắng
+            const winner = room.lastWordBy || "";
+            if (winner) {
+                database.ref("rooms/" + roomData.code + "/messages").push({
+                    sender: "system",
+                    text: `🏆 ${winner} THẮNG! +1000 Gold vì tất cả bỏ lượt!`,
+                    type: "system",
+                    timestamp: Date.now()
                 });
+
+                // Cộng 1000 gold cho winner
+                if (winner === currentUser.name) {
+                    currentUser.gold += 1000;
+                    users[currentUser.name].gold = currentUser.gold;
+                    saveAllData();
+                    renderUI();
+                    showToast("🏆 Bạn thắng! +1000 Gold!");
+                }
+
+                database.ref("rooms/" + roomData.code).update({
+                    started: false,
+                    turn: "",
+                    skipped: {}
+                });
+                window._gameStarted = false;
+            }
+            return;
+        }
+
+        // Chuyển lượt sang người tiếp
+        const currentIndex = players.indexOf(currentTurn);
+        const nextPlayer = players[(currentIndex + 1) % players.length];
+
+        database.ref("rooms/" + roomData.code).update({
+            turn: nextPlayer,
+            skipped: skipped
         });
+
+        // Thông báo bỏ lượt
+        database.ref("rooms/" + roomData.code + "/messages").push({
+            sender: "system",
+            text: `⏰ ${currentTurn} hết giờ! Chuyển lượt sang ${nextPlayer}`,
+            type: "system",
+            timestamp: Date.now()
+        });
+    });
 }
 
 // FIX: Null check cho room-list không tồn tại trong HTML
@@ -616,17 +668,31 @@ function sendWord() {
                 return;
             }
 
+            // Kiểm tra nối từ: tiếng đầu của từ mới = tiếng cuối từ trước
+            const prevWord = room.currentWord || "";
+            if (prevWord) {
+                const prevParts = prevWord.trim().split(/\s+/);
+                const newParts  = newWord.trim().split(/\s+/);
+                const lastSyl   = prevParts[prevParts.length - 1].toLowerCase();
+                const firstSyl  = newParts[0].toLowerCase();
+                if (lastSyl !== firstSyl) {
+                    showWebNotice(`❌ Phải bắt đầu bằng "${lastSyl.toUpperCase()}"!`);
+                    return;
+                }
+            }
+
             input.value = "";
 
             const players = room.players ? Object.keys(room.players) : [];
             const currentIndex = players.indexOf(currentUser.name);
             const nextPlayer = players[(currentIndex + 1) % players.length];
 
-            // Cập nhật từ + chuyển lượt
+            // Reset skipped vì có người nối được từ
             database.ref("rooms/" + roomData.code).update({
                 currentWord: newWord,
                 turn: nextPlayer,
-                lastWordBy: currentUser.name
+                lastWordBy: currentUser.name,
+                skipped: {}
             });
 
             database.ref("rooms/" + roomData.code + "/messages").push({
@@ -701,9 +767,16 @@ function listenGameRealtime() {
         if (data.turn) {
             const isMyTurn = data.turn === currentUser.name;
 
+            // Tính tiếng cần bắt đầu
+            const hint = data.currentWord
+                ? data.currentWord.trim().split(/\s+/).pop().toUpperCase()
+                : "";
+
             if (turnInfo) {
                 if (isMyTurn) {
-                    turnInfo.innerText = "🟢 Lượt của bạn!";
+                    turnInfo.innerText = hint
+                        ? `🟢 Lượt bạn! Bắt đầu bằng: "${hint}"`
+                        : "🟢 Lượt của bạn! (Từ đầu tiên)";
                     turnInfo.style.color = "#22c55e";
                 } else {
                     turnInfo.innerText = `⏳ Lượt của ${data.turn}`;
@@ -714,7 +787,9 @@ function listenGameRealtime() {
             // Enable/disable ô nhập từ theo lượt
             if (wordInput) {
                 wordInput.disabled = !isMyTurn;
-                wordInput.placeholder = isMyTurn ? "Nhập từ nối..." : `Chờ ${data.turn} nhập...`;
+                wordInput.placeholder = isMyTurn
+                    ? (hint ? `Bắt đầu bằng "${hint}"...` : "Nhập từ đầu tiên...")
+                    : `Chờ ${data.turn} nhập...`;
                 wordInput.style.opacity = isMyTurn ? "1" : "0.4";
             }
             if (wordBtn) {
@@ -723,13 +798,18 @@ function listenGameRealtime() {
                 wordBtn.style.cursor = isMyTurn ? "pointer" : "not-allowed";
             }
 
+            // Reset + start timer mỗi khi turn thay đổi
             if (isMyTurn) {
+                stopTurnTimer();
                 startTurnTimer();
                 if (wordInput) wordInput.focus();
             } else {
                 stopTurnTimer();
             }
         }
+
+        // Cập nhật panel online players
+        if (data.players) updateOnlinePanel(data.players, data.turn);
     });
 }
 

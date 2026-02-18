@@ -151,7 +151,18 @@
             </section>
 
             <section id="sec-game-play" class="page hidden">
-                <div class="game-container">
+                <div style="display:flex;gap:15px;height:calc(100vh - 80px);padding:20px;">
+
+                    <!-- Panel online bên phải -->
+                    <div id="online-panel"
+                         style="width:180px;flex-shrink:0;
+                                background:rgba(255,255,255,0.03);
+                                border:1px solid rgba(255,255,255,0.08);
+                                border-radius:16px;padding:15px;
+                                overflow-y:auto;order:2;">
+                    </div>
+
+                <div class="game-container" style="flex:1;height:100%;padding:0;">
                     <div class="game-header">
                         <div class="turn-indicator" id="turn-info">Đang chờ...</div>
                         <div class="last-word-box">Từ hiện tại: <span id="current-target">---</span></div>
@@ -182,6 +193,7 @@
                     </div>
 
                 </div>
+                </div><!-- end flex wrapper -->
             </section>
 
             <section id="sec-admin" class="page hidden">

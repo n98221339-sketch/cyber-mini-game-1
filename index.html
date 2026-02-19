@@ -3,7 +3,11 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta name="theme-color" content="#09090b">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>CYBERGAME | Natsumi Elite</title>
     <link rel="icon" href="https://i.ibb.co/BKy534db/Kh-ng-c-ti-u-1.png">
     <link rel="stylesheet" href="style.css">
@@ -82,9 +86,21 @@
                             <p>Thử từ cá nhân</p>
                         </div>
                     </div>
-                    <div class="card" onclick="devMode()">
+                    <div class="card" onclick="showSection('sec-flash')">
+                        <div class="thumb" style="background:linear-gradient(135deg,#ff6b35,#f7931e);display:flex;align-items:center;justify-content:center;font-size:2.2rem;">⚡</div>
+                        <div class="info"><b>Flash Games</b>
+                            <p>Upload file .swf</p>
+                        </div>
+                    </div>
+                    <div class="card hidden" id="card-monopoly" onclick="initMonopoly()">
                         <div class="thumb ocean"><i class="fas fa-dice"></i></div>
                         <div class="info"><b>Cờ Tỷ Phú Tycoon</b>
+                            <p>Multiplayer & vs Bot</p>
+                        </div>
+                    </div>
+                    <div class="card" style="opacity:0.5;cursor:not-allowed;" title="Đang phát triển">
+                        <div class="thumb" style="background:linear-gradient(135deg,#2ecc71,#27ae60);display:flex;align-items:center;justify-content:center;font-size:2.2rem;">⚔️</div>
+                        <div class="info"><b>RPG Maker Games</b>
                             <p>Đang phát triển...</p>
                         </div>
                     </div>
@@ -187,7 +203,7 @@
                 <div style="display:flex;gap:15px;height:calc(100vh - 80px);padding:20px;">
 
                     <!-- Panel online bên phải -->
-                    <div style="width:200px;flex-shrink:0;order:2;display:flex;flex-direction:column;
+                    <div id="online-panel-wrapper" style="width:200px;flex-shrink:0;order:2;display:flex;flex-direction:column;
                                 background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
                                 border-radius:16px;overflow:hidden;">
 
@@ -267,6 +283,9 @@
                 </div><!-- end flex wrapper -->
             </section>
 
+            <!-- MONOPOLY GAME SECTION -->
+            <section id="sec-monopoly" class="page hidden"></section>
+
             <section id="sec-admin" class="page hidden">
                 <div class="admin-panel glass">
                     <h3><i class="fas fa-shield-check"></i> Natsumi Super Admin</h3>
@@ -321,9 +340,151 @@
         </div>
     </div>
 
+            <!-- FLASH GAME SECTION -->
+            <section id="sec-flash" class="page hidden">
+                <div style="max-width:900px;margin:20px auto;padding:16px;">
+                    <!-- Header -->
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+                        <button onclick="goHome()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#fff;border-radius:10px;padding:8px 14px;cursor:pointer;flex-shrink:0;">← Quay lại</button>
+                        <h2 style="margin:0;color:#fff;">⚡ Flash Games</h2>
+                    </div>
+
+                    <!-- Chọn engine + upload gộp 1 hàng -->
+                    <div class="glass" style="padding:16px 20px;border-radius:16px;margin-bottom:14px;">
+                        <!-- Cảnh báo -->
+                        <div style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:10px;
+                                    padding:10px 14px;margin-bottom:14px;font-size:0.75rem;color:#fbbf24;display:flex;gap:8px;">
+                            <span style="flex-shrink:0;">⚠️</span>
+                            <div style="color:#d4d4d8;line-height:1.7;">
+                                <b style="color:#fbbf24;">Adobe Flash Player:</b> mượt mà, hỗ trợ nhiều game nhất – nhưng cần cài Adobe Flash Player trên máy và bật trong trình duyệt<br>
+                                <b style="color:#fbbf24;">Ruffle Emulator:</b> chạy thẳng trên web, không cần cài – nhưng có thể không mượt hoặc không hỗ trợ một số game phức tạp
+                            </div>
+                        </div>
+
+                        <!-- Hàng chọn engine + upload -->
+                        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                            <select id="flash-engine"
+                                style="background:#18181b;border:1px solid rgba(255,255,255,0.15);color:#fff;
+                                       border-radius:10px;padding:9px 14px;cursor:pointer;font-size:0.85rem;flex-shrink:0;">
+                                <option value="ruffle">⚡ Ruffle Emulator</option>
+                                <option value="adobe">🔷 Adobe Flash Player</option>
+                            </select>
+                            <label style="flex:1;min-width:200px;background:#18181b;border:1px solid rgba(255,255,255,0.1);
+                                          color:#a1a1aa;border-radius:10px;padding:9px 14px;cursor:pointer;
+                                          display:flex;align-items:center;gap:8px;white-space:nowrap;">
+                                <span style="color:#ff6b35;">📂</span>
+                                <span id="flash-filename">Chọn file .swf...</span>
+                                <input type="file" id="flash-file" accept=".swf" onchange="loadFlash(this)" style="display:none;">
+                            </label>
+                            <button onclick="document.getElementById('flash-file').click()"
+                                style="background:linear-gradient(135deg,#ff6b35,#f7931e);border:none;color:#fff;
+                                       border-radius:10px;padding:9px 18px;cursor:pointer;font-weight:bold;white-space:nowrap;flex-shrink:0;">
+                                ▶ Chơi
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Player / Placeholder -->
+                    <div id="flash-container" style="display:none;background:#000;border-radius:16px;overflow:hidden;width:100%;aspect-ratio:4/3;position:relative;">
+                        <div style="position:absolute;top:8px;right:8px;z-index:10;display:flex;gap:6px;">
+                            <button onclick="toggleFlashFS()" style="background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:0.75rem;">⛶ Toàn màn hình</button>
+                            <button onclick="closeFlash()" style="background:rgba(239,68,68,0.5);border:none;color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:0.75rem;">✕ Đóng</button>
+                        </div>
+                        <div id="flash-player" style="width:100%;height:100%;"></div>
+                    </div>
+                    <div id="flash-placeholder" class="glass" style="padding:40px;border-radius:16px;text-align:center;color:#71717a;">
+                        <div style="font-size:3.5rem;margin-bottom:12px;">⚡</div>
+                        <div style="font-size:1rem;margin-bottom:6px;color:#fff;">Chưa có game</div>
+                        <div style="font-size:0.8rem;">Chọn file .swf để bắt đầu chơi</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RPG MAKER SECTION -->
+            <section id="sec-rpg" class="page hidden">
+                <div style="max-width:960px;margin:30px auto;padding:20px;">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+                        <button onclick="goHome()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#fff;border-radius:10px;padding:8px 14px;cursor:pointer;">← Quay lại</button>
+                        <h2 style="margin:0;color:#fff;">⚔️ RPG Maker Games</h2>
+                    </div>
+                    <div class="glass" style="padding:24px;border-radius:20px;margin-bottom:20px;">
+                        <!-- Cảnh báo -->
+                        <div style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.35);
+                                    border-radius:12px;padding:12px 16px;margin-bottom:16px;
+                                    display:flex;gap:10px;align-items:flex-start;">
+                            <span style="font-size:1.2rem;flex-shrink:0;">⚠️</span>
+                            <div style="font-size:0.75rem;color:#fbbf24;line-height:1.7;">
+                                <b>Lưu ý khi upload folder:</b><br>
+                                <span style="color:#d4d4d8;">
+                                • RPG Maker game thường có <b style="color:#fbbf24;">hàng trăm file</b> – browser có thể xử lý chậm lần đầu<br>
+                                • Nếu game bị lỗi hoặc không load được asset, hãy dùng <b style="color:#fbbf24;">cách nhập URL</b> (đặt folder cùng chỗ với CyberGame)<br>
+                                • Flash game: chỉ hỗ trợ ActionScript 1/2/3, một số game phức tạp có thể không chạy được với Ruffle
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Tab chọn cách load -->
+                        <div style="display:flex;gap:8px;margin-bottom:16px;">
+                            <button id="rpg-tab-file" onclick="rpgTab('file')"
+                                style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(46,204,113,0.5);
+                                       background:rgba(46,204,113,0.2);color:#2ecc71;cursor:pointer;font-weight:bold;font-size:0.8rem;">
+                                📁 Upload File
+                            </button>
+                            <button id="rpg-tab-url" onclick="rpgTab('url')"
+                                style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);
+                                       background:transparent;color:#a1a1aa;cursor:pointer;font-size:0.8rem;">
+                                🔗 Nhập URL
+                            </button>
+                        </div>
+
+                        <!-- Upload file mode -->
+                        <div id="rpg-file-mode">
+                            <label style="font-size:0.8rem;color:#a1a1aa;letter-spacing:1px;display:block;margin-bottom:10px;">
+                                CHỌN TOÀN BỘ FOLDER GAME (giữ Ctrl + chọn tất cả file)
+                            </label>
+                            <input type="file" id="rpg-files" multiple webkitdirectory
+                                style="width:100%;background:#18181b;border:1px solid rgba(255,255,255,0.1);
+                                       color:#a1a1aa;border-radius:10px;padding:10px;cursor:pointer;"
+                                onchange="loadRPGFiles(this)">
+                            <p style="color:#71717a;font-size:0.75rem;margin-top:8px;">
+                                💡 Chọn <b style="color:#fff;">toàn bộ folder</b> export từ RPG Maker MV/MZ
+                                (có chứa file <span style="color:#22c55e;">index.html</span>)
+                            </p>
+                        </div>
+
+                        <!-- URL mode -->
+                        <div id="rpg-url-mode" style="display:none;">
+                            <label style="font-size:0.8rem;color:#a1a1aa;letter-spacing:1px;display:block;margin-bottom:10px;">ĐƯỜNG DẪN GAME (index.html)</label>
+                            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                                <input type="text" id="rpg-url" placeholder="./tên-folder/index.html hoặc https://..."
+                                    style="flex:1;min-width:200px;background:#18181b;border:1px solid rgba(255,255,255,0.1);
+                                           color:#fff;border-radius:10px;padding:10px 14px;outline:none;font-size:0.9rem;">
+                                <button onclick="loadRPGUrl()"
+                                    style="background:linear-gradient(135deg,#2ecc71,#27ae60);border:none;color:#fff;
+                                           border-radius:10px;padding:10px 20px;cursor:pointer;font-weight:bold;white-space:nowrap;">
+                                    ▶ Chơi
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="rpg-container" style="display:none;background:#000;border-radius:16px;overflow:hidden;width:100%;height:72vh;">
+                        <div style="display:flex;justify-content:flex-end;padding:6px 10px;background:#111;gap:6px;">
+                            <button onclick="toggleRPGFullscreen()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;border-radius:6px;padding:4px 12px;cursor:pointer;font-size:0.8rem;">⛶ Toàn màn hình</button>
+                            <button onclick="closeRPG()" style="background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#ef4444;border-radius:6px;padding:4px 12px;cursor:pointer;font-size:0.8rem;">✕ Đóng</button>
+                        </div>
+                        <iframe id="rpg-frame" style="width:100%;height:calc(100% - 38px);border:none;" allowfullscreen></iframe>
+                    </div>
+                    <div id="rpg-placeholder" class="glass" style="padding:60px;border-radius:20px;text-align:center;color:#71717a;">
+                        <div style="font-size:4rem;margin-bottom:16px;">⚔️</div>
+                        <div style="font-size:1.1rem;margin-bottom:8px;color:#fff;">Chưa có game</div>
+                        <div style="font-size:0.85rem;">Nhập đường dẫn game RPG Maker để chơi</div>
+                    </div>
+                </div>
+            </section>
+
     <script src="script.js"></script>
+    <script src="monopoly.js"></script>
 
 </body>
 
 </html>
-
